@@ -13,7 +13,26 @@ local should = lut.Test 'lens.Finalizer'
 local Finalizer = lens.Finalizer
 
 function should.autoload()
-  assertType('function', Finalizer)
+  assertType('table', Finalizer)
+end
+
+function should.setType()
+  local f = Finalizer(function() end)
+  assertEqual('lens.Finalizer', f.type)
+end
+
+function should.tostring()
+  local f = Finalizer(function() end)
+  assertMatch('lens.Finalizer: 0x.*', tostring(f))
+end
+
+function should.setFinalize()
+  local t
+  local f = Finalizer(function() 
+    t = true
+  end)
+  f:finalize()
+  assertTrue(t)
 end
 
 function should.triggerOnGc()
@@ -39,5 +58,8 @@ function should.triggerOnGc()
   assertTrue(continue)
   assertTrue(continue2)
 end
+
+should.ignore.deleted  = true
+should.ignore.finalize = true
 
 should:test()

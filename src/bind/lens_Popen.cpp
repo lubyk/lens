@@ -31,7 +31,7 @@ static int Popen__cast_(lua_State *L) {
 }
 
 /** lens::Popen::Popen(const char *program, lua_State *L)
- * include/lens/Popen.h:52
+ * include/lens/Popen.h:47
  */
 static int Popen_Popen(lua_State *L) {
   try {
@@ -48,7 +48,7 @@ static int Popen_Popen(lua_State *L) {
 }
 
 /** lens::Popen::~Popen()
- * include/lens/Popen.h:136
+ * include/lens/Popen.h:49
  */
 static int Popen__Popen(lua_State *L) {
   try {
@@ -68,7 +68,7 @@ static int Popen__Popen(lua_State *L) {
 }
 
 /** int lens::Popen::pid()
- * include/lens/Popen.h:138
+ * include/lens/Popen.h:51
  */
 static int Popen_pid(lua_State *L) {
   try {
@@ -79,6 +79,22 @@ static int Popen_pid(lua_State *L) {
     lua_pushfstring(L, "pid: %s", e.what());
   } catch (...) {
     lua_pushfstring(L, "pid: Unknown exception");
+  }
+  return dub::error(L);
+}
+
+/** int lens::Popen::waitpid()
+ * include/lens/Popen.h:56
+ */
+static int Popen_waitpid(lua_State *L) {
+  try {
+    Popen *self = *((Popen **)dub::checksdata(L, 1, "lens.Popen"));
+    lua_pushnumber(L, self->waitpid());
+    return 1;
+  } catch (std::exception &e) {
+    lua_pushfstring(L, "waitpid: %s", e.what());
+  } catch (...) {
+    lua_pushfstring(L, "waitpid: Unknown exception");
   }
   return dub::error(L);
 }
@@ -116,7 +132,7 @@ static int Popen_close(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::read(size_t sz, lua_State *L)
- * include/lens/File.h:119
+ * include/lens/File.h:106
  */
 static int Popen_read(lua_State *L) {
   try {
@@ -132,7 +148,7 @@ static int Popen_read(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::readLine(lua_State *L)
- * include/lens/File.h:133
+ * include/lens/File.h:109
  */
 static int Popen_readLine(lua_State *L) {
   try {
@@ -147,7 +163,7 @@ static int Popen_readLine(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::readAll(lua_State *L)
- * include/lens/File.h:136
+ * include/lens/File.h:112
  */
 static int Popen_readAll(lua_State *L) {
   try {
@@ -161,12 +177,27 @@ static int Popen_readAll(lua_State *L) {
   return dub::error(L);
 }
 
+/** LuaStackSize lens::File::write(lua_State *L)
+ * include/lens/File.h:115
+ */
+static int Popen_write(lua_State *L) {
+  try {
+    Popen *self = *((Popen **)dub::checksdata(L, 1, "lens.Popen"));
+    return self->write(L);
+  } catch (std::exception &e) {
+    lua_pushfstring(L, "write: %s", e.what());
+  } catch (...) {
+    lua_pushfstring(L, "write: Unknown exception");
+  }
+  return dub::error(L);
+}
+
 
 
 // --=============================================== __tostring
 static int Popen___tostring(lua_State *L) {
   Popen *self = *((Popen **)dub::checksdata_n(L, 1, "lens.Popen"));
-  lua_pushfstring(L, "lens.Popen: %p (%i)", self, self-> fd());
+  lua_pushfstring(L, "lens.Popen: %p (%d)", self, self-> fd());
   
   return 1;
 }
@@ -178,11 +209,13 @@ static const struct luaL_Reg Popen_member_methods[] = {
   { "new"          , Popen_Popen          },
   { "__gc"         , Popen__Popen         },
   { "pid"          , Popen_pid            },
+  { "waitpid"      , Popen_waitpid        },
   { "fd"           , Popen_fd             },
   { "close"        , Popen_close          },
   { "read"         , Popen_read           },
   { "readLine"     , Popen_readLine       },
   { "readAll"      , Popen_readAll        },
+  { "write"        , Popen_write          },
   { "__tostring"   , Popen___tostring     },
   { "deleted"      , dub::isDeleted       },
   { NULL, NULL},

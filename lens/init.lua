@@ -46,7 +46,7 @@ lib.DEPENDS = { -- doc
 --
 -- Usage:
 --
---   lub.sleep(0.5)
+--   lens.sleep(0.5)
 --   -- is the same as
 --   coroutine.yield('sleep', sec)
 function lib.sleep(sec)
@@ -59,7 +59,7 @@ end
 --
 -- this function simply does:
 --
---   lub.waitRead(fd)
+--   lens.waitRead(fd)
 --   -- is the same as
 --   coroutine.yield('read', fd)
 function lib.waitRead(fd)
@@ -71,7 +71,7 @@ end
 --
 -- this function simply does:
 --
---   lub.waitWrite(fd)
+--   lens.waitWrite(fd)
 --   -- is the same as
 --   coroutine.yield('write', fd)
 function lib.waitWrite(fd)

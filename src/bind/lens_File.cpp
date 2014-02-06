@@ -80,7 +80,7 @@ static int File_close(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::read(size_t sz, lua_State *L)
- * include/lens/File.h:119
+ * include/lens/File.h:106
  */
 static int File_read(lua_State *L) {
   try {
@@ -96,7 +96,7 @@ static int File_read(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::readLine(lua_State *L)
- * include/lens/File.h:133
+ * include/lens/File.h:109
  */
 static int File_readLine(lua_State *L) {
   try {
@@ -111,7 +111,7 @@ static int File_readLine(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::readAll(lua_State *L)
- * include/lens/File.h:136
+ * include/lens/File.h:112
  */
 static int File_readAll(lua_State *L) {
   try {
@@ -121,6 +121,21 @@ static int File_readAll(lua_State *L) {
     lua_pushfstring(L, "readAll: %s", e.what());
   } catch (...) {
     lua_pushfstring(L, "readAll: Unknown exception");
+  }
+  return dub::error(L);
+}
+
+/** LuaStackSize lens::File::write(lua_State *L)
+ * include/lens/File.h:115
+ */
+static int File_write(lua_State *L) {
+  try {
+    File *self = *((File **)dub::checksdata(L, 1, "lens.File"));
+    return self->write(L);
+  } catch (std::exception &e) {
+    lua_pushfstring(L, "write: %s", e.what());
+  } catch (...) {
+    lua_pushfstring(L, "write: Unknown exception");
   }
   return dub::error(L);
 }
@@ -145,6 +160,7 @@ static const struct luaL_Reg File_member_methods[] = {
   { "read"         , File_read            },
   { "readLine"     , File_readLine        },
   { "readAll"      , File_readAll         },
+  { "write"        , File_write           },
   { "__tostring"   , File___tostring      },
   { "deleted"      , dub::isDeleted       },
   { NULL, NULL},

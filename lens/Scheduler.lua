@@ -173,6 +173,10 @@ function runThread(self, thread)
       thread.error(a, debug.traceback(thread.co))
     else
       print('UNPROTECTED ERROR', a, thread.co, debug.traceback(thread.co))
+      if thread.fd then
+        removeFd(self, thread)
+      end
+      thread.co = nil
       -- error(a)
     end
   end

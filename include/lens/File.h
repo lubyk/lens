@@ -102,38 +102,17 @@ public:
   }
 
 
-  // Read 'sz' bytes from fd. Returns string or false and error message.
-  // local sz = 1024
-  // local op, data = f:read(sz)
-  // while File.op == File.EAGAIN
-  //   local l
-  //   yield('read', f:fd())
-  //   op, l = f:read(sz - string.len(data))
-  //   data = data .. l
-  // end
-  // if op == File.OK then
-  //   return line
-  // else
-  //   return false, File.Message[op]
-  // end
+  // Return string and op
   LuaStackSize read(size_t sz, lua_State *L);
-  // Read a line from fd. Returns string or false and error message.
-  // local op, line = f:readLine()
-  // while op == File.EAGAIN
-  //   local l
-  //   yield('read', f:fd())
-  //   op, l = f:readLine()
-  //   line = line .. l
-  // end
-  // if op == File.OK then
-  //   return line
-  // else
-  //   return false, File.Message[op]
-  // end
+
+  // Return string and op
   LuaStackSize readLine(lua_State *L);
 
   // Read everyting until EOF is reached.
   LuaStackSize readAll(lua_State *L);
+
+  // Return written size and op
+  LuaStackSize write(lua_State *L);
 
 protected:
   void setFd(int fd) {

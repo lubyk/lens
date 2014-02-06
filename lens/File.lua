@@ -6,17 +6,22 @@
 local core  = require 'lens.core'
 local lib   = core.File
 
-local yield,           readLine =
-      coroutine.yield, core.Popen.readLine
-local OK, Wait = core.File.OK, core.File.Wait
+local     OK,     Wait =
+      lib.OK, lib.Wait
+
+local           yield,     readLine,     write,        len,        sub =
+      coroutine.yield, lib.readLine, lib.write, string.len, string.sub
+
+-- These lua helpers must be copied in each sub-class in order to avoid casting
+-- resolution overhead. :-(
 
 -- Read a line. Returns a string or nil on EOF.
 function lib:readLine()
-  local op, line = readLine(self)
+  local line, op = readLine(self)
   while op == Wait do
     local l
     yield('read', self:fd())
-    op, l = readLine(self)
+    l, op = readLine(self)
     line = line .. l
   end
   if op == OK then
@@ -25,6 +30,17 @@ function lib:readLine()
     -- EOF
     return nil
   end
+end
+
+-- Write a string to a file.
+function lib:write(str)
+  local wsz, op = write(self, str)
+  while op == Wait do
+    str = sub(str, wsz+1)
+    yield('write', self:fd())
+    wsz, op = write(self, str)
+  end
+  -- done
 end
 
 return lib

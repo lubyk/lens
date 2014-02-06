@@ -121,14 +121,18 @@ Popen::Popen(const char *program, lua_State *L)
   }
 }
 
-// void waitpid() {
-//   if (!file_) return;
-//   int child_status;
-//   ::waitpid(pid, &child_status, 0);
-//   if (WIFEXITED(child_status)) {
-//     return WEXITSTATUS(child_status);
-//   } else {
-//     return -1;
-//   }
-// }
+int Popen::waitpid() {
+  close();
+  int child_status;
+  int ret = ::waitpid(pid_, &child_status, 0);
+  if (ret == -1 || ret == pid_ - 1) {
+    throw dub::Exception("Could not waitpid (%s).", strerror(errno));
+  }
+  if (WIFEXITED(child_status)) {
+    return WEXITSTATUS(child_status);
+  } else {
+    // error
+    return -1;
+  }
+}
 

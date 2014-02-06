@@ -37,7 +37,7 @@ namespace lens {
 
 /** OS popen wrapper.
  *
- * @dub string_format: %%i
+ * @dub string_format: %%d
  *      string_args: self->fd()
  */
 class Popen : public File {
@@ -52,16 +52,8 @@ public:
     return pid_;
   }
 
-  // void waitpid() {
-  //   if (!file_) return;
-  //   int child_status;
-  //   ::waitpid(pid, &child_status, 0);
-  //   if (WIFEXITED(child_status)) {
-  //     return WEXITSTATUS(child_status);
-  //   } else {
-  //     return -1;
-  //   }
-  // }
+  // Blocking wait on child process. Return child exit number.
+  int waitpid();
 };
 } // lens
 

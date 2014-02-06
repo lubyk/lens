@@ -129,8 +129,8 @@ LuaStackSize File::readLine(lua_State *L) {
       if (c == '\n') {
         // found end of line
         // push string
-        lua_pushnumber(L, File::OK);
         luaL_pushresult(&buffer);
+        lua_pushnumber(L, (int)File::OK);
         return 2;
       } else if (c != '\r') {
         // ignore \r
@@ -148,14 +148,14 @@ LuaStackSize File::readLine(lua_State *L) {
     if (buffer_length_ == 0) {
       if (has_data) {
         // EOF == same as end of line
-        lua_pushnumber(L, File::OK);
         luaL_pushresult(&buffer);
+        lua_pushnumber(L, (int)File::OK);
         return 2;
       } else {
         // Reading past end of file
-        lua_pushnumber(L, File::End);
         // empty string
         luaL_pushresult(&buffer);
+        lua_pushnumber(L, (int)File::End);
         return 2;
       }
     } else if (buffer_length_ < 0) {
@@ -164,8 +164,8 @@ LuaStackSize File::readLine(lua_State *L) {
       switch(err) {
         case EINTR: // on interruption, just redo
         case EAGAIN:
-          lua_pushnumber(L, File::Wait);
           luaL_pushresult(&buffer);
+          lua_pushnumber(L, (int)File::Wait);
           return 2;
         default:
           throw dub::Exception("Could not read (%s).", strerror(err));
@@ -231,3 +231,42 @@ LuaStackSize lk::Socket::recvAll(lua_State *L) {
 }
 */
 
+
+// Return op and written size
+LuaStackSize File::write(lua_State *L) {
+  if (fd_ == 0) throw dub::Exception("Cannot write to a closed file.");
+  if (!(mode_ & Write)) throw dub::Exception("File mode not compatible with write operation.");
+
+  size_t sz;
+  const char *str = dub::checklstring(L, 2, &sz);
+
+  ssize_t todo = sz;
+
+  for (ssize_t n; todo; ) {
+    // keep trying to write until we either get EAGAIN, an error or finish
+    n = ::write(fd_, str, todo);
+    if (n == -1 && errno != EINTR) {
+      // error
+      break;
+    }
+    str += n;
+    todo -= n;
+  }
+
+  if (todo != 0) {
+    switch(errno) {
+      case EAGAIN:
+        // Wait to write more.
+        lua_pushnumber(L, sz - todo);
+        lua_pushnumber(L, (int)File::Wait);
+        return 2;
+      default:
+        throw dub::Exception("Could not write (%s).", strerror(errno));
+    }
+  } else {
+    // OK
+    lua_pushnumber(L, sz);
+    lua_pushnumber(L, (int)File::OK);
+    return 2;
+  }
+}
