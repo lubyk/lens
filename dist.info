@@ -1,0 +1,15 @@
+--- This file is part of Lubyk project
+
+name = "lens"
+version = "1.0.0"
+
+desc = "Lubyk networking and scheduling."
+author = "Gaspard Bucher"
+license = "MIT"
+url = "http://doc.lubyk.org/lens.html"
+maintainer = "Gaspard Bucher"
+
+depends = {
+  "lua >= 5.1, < 5.3",
+  "lub >= 1.0.3, < 1.1",
+}
