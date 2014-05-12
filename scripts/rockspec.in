@@ -1,11 +1,7 @@
+{% -- DEFAULT TEMPLATE FOR MODULE WITH C++. Original in lub project. %}
 {% 
 local lfs = require 'lfs'
 local lub = require 'lub'
--- Platforms with special cases
-local platspec = {'linux'} --, 'macosx', 'win32'
-local platlibs = {
-  linux   = "'stdc++', 'rt'",
-}
 %}
 package = "{{lib.type}}"
 version = "{{lib.VERSION}}-1"
@@ -14,25 +10,13 @@ source = {
   dir = '{{lib.type}}-REL-{{lib.VERSION}}',
 }
 description = {
-  summary = "Lubyk networking and scheduling.",
+  summary = "{{def.description.summary}}",
   detailed = [[
-    lens.Scheduler: core scheduling class.
-
-    lens.Poller: fast poller with nanosecond precision.
-
-    lens.Thread: threading class to use with scheduler.
-
-    lens.Timer: precise non-drifting timer.
-
-    lens.Finalizer: run code on garbage collection.
-
-    lens.Popen: pipe working with scheduler (non-blocking).
-  ]],
-  homepage = "http://doc.lubyk.org/{{lib.type}}.html",
-  license = "MIT"
+{{def.description.detailed}}]],
+  homepage = "{{def.description.homepage}}",
+  license = "{{def.description.license}}"
 }
 
-{% -- DEFAULT TEMPLATE FOR MODULE WITH C++. Original in lub project. %}
 dependencies = {
 {% for _, v in ipairs(lib.DEPENDS) do %}
   "{{v}}",
@@ -48,35 +32,51 @@ build = {
     {{string.format("[%-17s] = '%s/%s.lua'", "'"..lib.type..'.'..file.."'", lib.type, file)}},
 {% end %}
 {% end %}
-    -- C++ modules
+{% if not def.pure_lua then %}
+    -- C module
     {{string.format("[%-17s] = ", "'"..lib.type..".core'")}}{
       sources = {
-{% for path in lub.Dir('src'):glob('%.cpp',0) do %}
+{% for path in lub.Dir('src'):glob('%.c',0) do %}
         '{{path}}',
 {% end %}
-{% for path in lub.Dir('src/bind'):glob '%.cpp' do %}
+{% for path in lub.Dir('src/bind'):glob '%.c' do %}
         '{{path}}',
 {% end %}
       },
-      incdirs = {'include', 'src/bind', 'src/vendor'},
-      libraries = {'stdc++'},
+{% if def.includes and #def.includes > 0 then %}
+      incdirs   = {'{{ lub.join(def.includes, "', '") }}'},
+{% end %}
+{% if def.libraries and #def.libraries > 0 then %}
+      libraries = {'{{ lub.join(def.libraries, "', '") }}'},
+{% end %}
+    },
+{% end %}
+  },
+{% if lub.exist(lib.type..'/assets') then %}
+  install = {
+    -- Assets needed by library.
+    lua = {
+{% for path in lub.Dir(lib.type..'/assets'):glob() do %}
+      {{string.format("[%-32s] = '%s'", "'"..string.gsub(string.gsub(path, '%.', '_'), '/', '.').."'", path)}},
+{% end %}
     },
   },
-{% if #platspec > 0 then %}
+{% end %}
+{% if not def.pure_lua and #def.platspec > 0 then %}
   platforms = {
-{% for _, plat in ipairs(platspec) do %}
+{% for _, plat in ipairs(def.platspec) do %}
     {{plat}} = {
       modules = {
         ['{{lib.type}}.core'] = {
 {% if lub.exist('src/'..plat) then %}
           sources = {
-{% for path in lub.Dir('src/'..plat):glob '%.cpp' do %}
+{% for path in lub.Dir('src/'..plat):glob '%.c' do %}
             '{{path}}',
 {% end %}
           },
 {% end %}
-{% if platlibs[plat] then %}
-          libraries = { {{platlibs[plat]}} },
+{% if def.platlibs[plat] then %}
+          libraries = {'{{ lub.join(def.platlibs[plat], "', '") }}'},
 {% end %}
         },
       },
@@ -85,4 +85,5 @@ build = {
   },
 {% end %}
 }
+
 

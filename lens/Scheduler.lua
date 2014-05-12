@@ -293,5 +293,9 @@ function operations.kill(self, thread, other)
   end
 end
 
+function operations.poller(self, thread, new_poller)
+  assert(false, 'Poller replacement not yet implemented')
+end
+
 
 return lib

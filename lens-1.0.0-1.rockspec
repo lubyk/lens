@@ -18,7 +18,7 @@ description = {
     lens.Finalizer: run code on garbage collection.
 
     lens.Popen: pipe working with scheduler (non-blocking).
-  ]],
+    ]],
   homepage = "http://doc.lubyk.org/lens.html",
   license = "MIT"
 }
@@ -39,7 +39,7 @@ build = {
     ['lens.Scheduler' ] = 'lens/Scheduler.lua',
     ['lens.Thread'    ] = 'lens/Thread.lua',
     ['lens.Timer'     ] = 'lens/Timer.lua',
-    -- C++ modules
+    -- C module
     ['lens.core'      ] = {
       sources = {
         'src/file.cpp',
@@ -53,18 +53,10 @@ build = {
         'src/bind/lens_Poller.cpp',
         'src/bind/lens_Popen.cpp',
       },
-      incdirs = {'include', 'src/bind', 'src/vendor'},
+      incdirs   = {'include', 'src/bind'},
       libraries = {'stdc++'},
     },
   },
-  platforms = {
-    linux = {
-      modules = {
-        ['lens.core'] = {
-          libraries = { 'stdc++', 'rt' },
-        },
-      },
-    },
-  },
 }
+
 
