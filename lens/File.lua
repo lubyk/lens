@@ -2,6 +2,9 @@
 
   # File
 
+  A simple OS file wrapper which can return file descriptors
+  for read/write/events.
+
 --]]------------------------------------------------------
 local core  = require 'lens.core'
 local lib   = core.File

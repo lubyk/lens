@@ -2,6 +2,8 @@
 
   # Scheduler
 
+  TODO: Missing documentation on yield operations
+
 --]]------------------------------------------------------
 local lub     = require 'lub'
 local lens    = require 'lens'
@@ -49,6 +51,8 @@ function lib:loop()
     -- Get next thread to run
     local thread = self.at_next
     local now    = elapsed()
+    -- To make sure timers are set with the same 'now' value.
+    self.now     = now
 
     if not thread or thread.at > now then
       -- No events
@@ -99,8 +103,6 @@ function lib:loop()
     thread = self.at_next
     if thread then
       wake_at = thread.at
-    else
-      print('no at next', wake_at)
     end
 
     if self.fd_count == 0 and wake_at == -1 then
@@ -113,7 +115,7 @@ function lib:loop()
     if not self.poller:poll(wake_at) then
       -- interrupted
       self.should_run = false
-      print('interrupted')
+      print(' interrupted')
       break
     end
 
@@ -153,6 +155,10 @@ end
 ------------------------------------------------------ PRIVATE
 
 function runThread(self, thread)
+  if thread.at == 0 then
+    -- thread starting now
+    thread.at = self.now
+  end
   local ok, a, b, c = resume(thread.co, thread.retval)
   if ok then
     if a then
@@ -285,6 +291,12 @@ function operations.wait(self, thread, duration)
     removeFd(self, thread)
   end
   scheduleAt(self, nil, thread)
+end
+
+-- Halt scheduler and quit.
+function operations.halt(self)
+  print('Halt')
+  self.should_run = false
 end
 
 function operations.kill(self, thread, other)

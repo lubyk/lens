@@ -1,7 +1,6 @@
 --[[------------------------------------------------------
 
-  lens.Timer
-  --------
+  # lens.Timer
 
   The Timer contains a callback to execute a function at
   regular intervals. This timer does not drift (uses OS monotonic
@@ -28,96 +27,61 @@ local assert, setmetatable, running,           yield,           floor,      elap
       assert, setmetatable, coroutine.running, coroutine.yield, math.floor, lens.elapsed
 
 local Thread  = lens.Thread.new
+local run
 
-function lib.new(interval, func)
+-- # Constructor
+
+-- Create a new timer with a give `interval` in seconds and a callback function.
+-- The callback can also be set as #timeout method on the returned object.
+function lib.new(interval, callback)
   if not running() then
     error('Cannot create timer outside of running scheduler.')
   end
   local self = {
     interval = interval,
   }
-  self.cb = function() self:run() end
-  if func then
-    self.timeout = func
+  self.cb = function() run(self) end
+  if callback then
+    self.timeout = callback
   end
   return setmetatable(self, lib)
 end
 
--- The callback function. Note that first argument is the timer
--- itself.
-function lib:timeout() end
+-- # Start, stop, phase
 
 -- Start timer. The `start_in_seconds` parameter is the delay to start the
--- timer. This delay can be used for precise phase synchronization with other
--- timers or to use an irregular timer.
+-- timer. For precise phase synchronization with other timers, use #startAt.
+-- For irregular timers, you should use #timeout return value instead.
 function lib:start(start_in_seconds)
   assert(self.interval > 0, 'Cannot run timer with negative or zero interval.')
   if self.thread then
-    print('kill')
     -- reschedule
     self.thread:kill()
     self.thread = nil
   end
-  print('starting again')
 
   if not start_in_seconds then
     -- start or reschedule right away
     self.thread = Thread(self.cb)
   else
-    print('create new thread', start_in_seconds + elapsed())
     self.thread = Thread(self.cb, start_in_seconds + elapsed())
   end
 end
 
-function lib:run()
-  if self.interval > 0 then
-    while self.thread do
-      local interval = self:timeout()
-      if interval then
-        if interval <= 0 then
-          self:setInterval(0)
-          break
-        else
-          self.interval = interval
-          yield('wait', interval)
-        end
-      else
-        yield('wait', self.interval)
-      end
-    end
-  end
-end  
-
-function lib:setInterval(interval)
-  self.interval = interval
-
+-- Start timer with a precise starting time. This can be used to set precision 
+-- phase between timers.
+function lib:startAt(at)
+  assert(self.interval > 0, 'Cannot run timer with negative or zero interval.')
   if self.thread then
-    -- Running timer: remove from scheduler.
-    local ref = self.thread.at
-    if interval == 0 then
-      -- Stop.
-      self:stop()
-    else
-      -- Change interval and restart with same phase.
-      local diff = elapsed() - ref
-      local c = floor(diff / self.interval) + 1
-      -- FIXME: we should use 'wakeAt' so that we can specify absolute time and
-      -- avoid drift by calls to elapsed().
-      -- self:wakeAt(ref + interval * c)
-      self:start(self.interval * c)
-    end
-  else
-    -- Not running.
-    self.interval = interval
+    -- reschedule
+    self.thread:kill()
+    self.thread = nil
   end
+
+  self.thread = Thread(self.cb, at)
 end
 
-function lib:join()
-  if self.thread then
-    self.thread:join()
-  end
-end
-
+-- Stop the timer.
 function lib:stop()
   if self.thread then
     self.ref = self.thread.at
@@ -126,5 +90,50 @@ function lib:stop()
   end
 end
 
+-- # Methods
+
+-- Return true if the timmer is running.
+function lib:running()
+  return self.thread and true or false
+end
+
+-- Change interval but do not restart timer (effect on next trigger).
+function lib:setInterval(interval)
+  self.interval = interval
+end
+
+-- # Callback
+
+-- Method called when the timer fires. If you return a number from this
+-- method, it will be used as the next interval but it does not alter the
+-- timer interval.
+--
+-- Returning a number can be used for irregular timers or to change phase. A
+-- returned value of `0` stops the timer.
+-- function lib:timeout()
+
+----------------------------------------------- PRIVATE
+
+
+-- nodoc
+function run(self)
+  if self.interval > 0 then
+    while self.thread do
+      local interval = self:timeout()
+      if interval then
+        if interval <= 0 then
+          self:stop()
+          break
+        else
+          -- do not change interval but set next trigger, keeping thread.at
+          -- offset.
+          yield('wait', interval)
+        end
+      else
+        yield('wait', self.interval)
+      end
+    end
+  end
+end  
 
 return lib

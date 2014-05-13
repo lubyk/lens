@@ -21,7 +21,7 @@ local core = require 'lens.core'
 local private = {}
 local yield            =
       coroutine.yield
-local running, sched
+local running
 
 -- ## Dependencies
 --
@@ -42,16 +42,19 @@ lib.DEPENDS = { -- doc
 -- it is possible to use these equivalent methods instead.
 
 -- Enter event loop. This is equivalent to creating a lens.Scheduler and calling
--- run on it. If this function is called while the scheduler is already running,
--- it does nothing.
+-- run on it with some differences: 
+--
+-- * The initial call to `lens.run` never returns
+-- * Repeated calls to this function are ignored which this means that code
+--   after `lens.run` is executed.
+--
+-- This is typically used for [live coding](examples.lens.file_redo.html).
 function lib.run(func)
   if not running then
     running = true
-    if not sched then
-      sched = lib.Scheduler()
-    end
-    sched:run(func)
-    running = false
+    lib.Scheduler():run(func)
+    -- Make sure not code is executed below 'lens.run'
+    os.exit(0)
   end
 end
 
