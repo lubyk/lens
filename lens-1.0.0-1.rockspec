@@ -47,6 +47,7 @@ build = {
         'src/poller.cpp',
         'src/popen.cpp',
         'src/bind/dub/dub.cpp',
+        'src/bind/dub/dub.cpp~',
         'src/bind/lens_core.cpp',
         'src/bind/lens_File.cpp',
         'src/bind/lens_Finalizer.cpp',

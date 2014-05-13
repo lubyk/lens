@@ -30,10 +30,18 @@
 #define LUBYK_INCLUDE_LENS_POLLER_H_
 
 #include "lens/lens.h"
-
 #include "dub/dub.h"
 
-#include <poll.h>   // poll()
+// Maximum return event count
+#define MAX_REVENT_COUNT 20
+// Use kevent
+#define LUBYK_POLLER_KEVENT
+#define DEBUG 0
+
+#define debug_print(fmt, ...) \
+        do { if (DEBUG) fprintf(stderr, "%s:%d:%12s(): " fmt, __FILE__, \
+                                __LINE__, __func__, __VA_ARGS__); } while (0)
+
 #include <errno.h>  // errno
 #include <string.h> // strerror()
 
@@ -42,7 +50,13 @@
 #include <assert.h> // assert()
 #include <signal.h> // signal(), SIG_DFL, ...
 
-// #include "msgpack/msgpack.h"
+
+
+#ifdef LUBYK_POLLER_KEVENT
+#include <sys/event.h>
+#else
+#include <poll.h>   // poll()
+#endif
 
 namespace lens {
 
@@ -52,7 +66,18 @@ namespace lens {
  *      string_args: self->count()
  */
 class Poller {
+
+#ifdef LUBYK_POLLER_KEVENT
+  typedef struct kevent Pollitem;
+
+  /** Kevent queue id.
+   */
+  int kqueue_;
+
+  Pollitem events_data_[MAX_REVENT_COUNT];
+#else
   typedef struct pollfd Pollitem;
+#endif
 
   /** Contiguous array of poll items.
    */
@@ -89,6 +114,13 @@ class Poller {
   static pthread_key_t sThisKey;
 public:
 
+  enum Filters {
+    //  compatible with zmq
+    Read  = 1, // POLLIN
+    Write = 2, // POLLOUT
+    VNode = 3,
+  };
+
   /** Create a poller and reserve free slots.
    */
   Poller(int reserve=8);
@@ -104,28 +136,50 @@ public:
    * @param wake time using monotonic clock in seconds.
    */
   bool poll(double wake_at) {
-    double start = lens::elapsed();
-    time_t timeout;
+    double timeout;
+    debug_print("Wake at:%.2f\n", wake_at);
     
     if (wake_at < 0) {
       timeout = -1;
     } else {
-      timeout = (wake_at - lens::elapsed()) * 1000;
+      timeout = wake_at - lens::elapsed();
       if (timeout < 0) {
         timeout = 0;
       }
     }
 
+    debug_print("poll timeout:%f used:%i.\n", timeout, used_count_);
+
     // interruption can occur between poll operations
     if (interrupted_) return false;
 
+#ifdef LUBYK_POLLER_KEVENT
+    if (timeout >= 0) {
+      int timeout_sec  = timeout;
+      int timeout_nsec = (timeout - timeout_sec) * 1000000000; // nanosec
+      struct timespec ttimeout = { timeout_sec, timeout_nsec};
+
+      // Get new events.
+      // kevent expects a timespec
+      event_count_ = ::kevent(kqueue_, NULL, 0, events_data_, MAX_REVENT_COUNT, &ttimeout);
+    } else {
+      // negative timeout == wait forever
+      event_count_ = ::kevent(kqueue_, NULL, 0, events_data_, MAX_REVENT_COUNT, NULL);
+    }
+#else
     // poll expects milliseconds
-    event_count_ = ::poll(pollitems_, used_count_, timeout);
-    if (event_count_ < 0) {
+    // negative timeout == wait forever
+    event_count_ = ::poll(pollitems_, used_count_, timeout * 1000);
+#endif
+    if (event_count_ < 0 || events_data_[0].flags == EV_ERROR) {
       // error or interruption
       event_count_ = 0;
       if (!interrupted_) {
+#ifdef LUBYK_POLLER_KEVENT
+        throw dub::Exception("An error occured during kevent (%s)", strerror(errno));
+#else
         throw dub::Exception("An error occured during poll (%s)", strerror(errno));
+#endif
       } else {
         return false;
       }
@@ -146,6 +200,15 @@ public:
     lua_newtable(L);
     // <table>
     int pos = 0;
+#ifdef LUBYK_POLLER_KEVENT
+    for(int i=0; i < event_count_; ++i) {
+      Pollitem *item = &events_data_[i];
+      // udata contains idx
+      lua_pushnumber(L, (intptr_t)item->udata);
+      // <table> <idx>
+      lua_rawseti(L, -2, ++pos);
+    }
+#else
     for(int i=0; i < used_count_; ++i) {
       Pollitem *item = pollitems_ + i;
       if (item->revents) {
@@ -155,32 +218,127 @@ public:
       }
       if (pos == event_count_) break;
     }
+#endif
     event_count_ = 0;
     return 1;
   }
 
-  int add(int fd, int events) {
-    return addItem(fd, events);
+  // This must be called for the given thread before poll is called again.
+  int fflags(int idx) {
+#ifdef LUBYK_POLLER_KEVENT
+    assert(idx < pollitems_size_ && idx >= 0);
+    int pos = idx_to_pos_[idx];
+    return pollitems_[pos].fflags;
+#else
+    return 0;
+#endif
   }
 
-  /** Modify an item's events by its id.
+  // Translate event fflags to a table
+  static LuaStackSize eventMap(int fflags, lua_State *L) {
+#ifdef LUBYK_POLLER_KEVENT
+    lua_newtable(L);
+    if (fflags & NOTE_DELETE) {
+      lua_pushboolean(L, true);
+      lua_rawseti(L, -2, NOTE_DELETE);
+    }
+    if (fflags & NOTE_WRITE) {
+      lua_pushboolean(L, true);
+      lua_rawseti(L, -2, NOTE_WRITE);
+    }
+    if (fflags & NOTE_EXTEND) {
+      lua_pushboolean(L, true);
+      lua_rawseti(L, -2, NOTE_EXTEND);
+    }
+    if (fflags & NOTE_ATTRIB) {
+      lua_pushboolean(L, true);
+      lua_rawseti(L, -2, NOTE_ATTRIB);
+    }
+    if (fflags & NOTE_LINK) {
+      lua_pushboolean(L, true);
+      lua_rawseti(L, -2, NOTE_LINK);
+    }
+    if (fflags & NOTE_RENAME) {
+      lua_pushboolean(L, true);
+      lua_rawseti(L, -2, NOTE_RENAME);
+    }
+    if (fflags & NOTE_REVOKE) {
+      lua_pushboolean(L, true);
+      lua_rawseti(L, -2, NOTE_REVOKE);
+    }
+    // <table>
+    return 1;
+#else
+    return 0;
+#endif
+  }
+
+  int add(int fd, int filter, int fflags = 0) {
+    debug_print("add fd:%i, filter:%i, flags:%i.\n", fd, filter, fflags);
+    return addItem(fd, filter, fflags);
+  }
+
+  /** Modify an item's filter by its id.
    */
-  void modify(int idx, int events, lua_State *L) {
-    assert(events);
+  void modify(int idx, int filter, lua_State *L) {
+    debug_print("modify idx:%i, filter:%i.\n", idx, filter);
+    assert(filter);
     assert(idx < pollitems_size_ && idx >= 0);
     Pollitem *item = pollitems_ + idx_to_pos_[idx];
-    item->events = events;
-    int top = lua_gettop(L);
-    // <self> <idx> <events> <new_fd>
+    int fd     = -1;
+    int fflags = 0;
+    int top    = lua_gettop(L);
+    // <self> <idx> <filter> <new_fd> (<flags>)
     if (top > 3) {
-      int fd = dub::checkint(L, 4);
+      fd = dub::checkint(L, 4);
+      if (top > 4) {
+        fflags = dub::checkint(L, 5);
+      }
+    }
+#ifdef LUBYK_POLLER_KEVENT
+    if (fd != -1) {
+      // changed fd or identifier
+      item->ident = fd;
+    }
+	
+    switch(filter) {
+      case Read:
+        item->filter = EVFILT_READ;
+        item->flags  = EV_ADD | EV_ENABLE | EV_CLEAR;
+        break;
+      case Write:
+        item->filter = EVFILT_WRITE;
+        item->flags  = EV_ADD | EV_ENABLE | EV_CLEAR;
+
+        break;
+      case VNode:
+        item->filter = EVFILT_VNODE;
+        item->flags  = EV_ADD | EV_ENABLE | EV_CLEAR;
+        if (fflags == 0) {
+          // default File flags
+          fflags = NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_LINK | NOTE_RENAME | NOTE_REVOKE;
+        }
+
+        item->fflags = fflags;
+       break;
+      default:
+        throw dub::Exception("Invalid filter value %i.", filter);
+    }
+    setKEvent(item);
+#else
+    // change kevent
+    item->events = filter;
+    if (fd != -1) {
+      // changed fd
       item->fd = fd;
     }
+#endif
   }
 
   /** Remove an item by its id.
    */
   void remove(int idx) {
+    debug_print("remove idx:%i.\n", idx);
     if (idx < 0 || idx >= pollitems_size_) {
       // Allready removed = bug.
       throw dub::Exception("Invalid index '%i'.", idx);
@@ -191,6 +349,12 @@ public:
       // Allready removed = bug.
       throw dub::Exception("Element '%i' removed twice.", idx);
     }
+#ifdef LUBYK_POLLER_KEVENT
+    Pollitem *item = pollitems_ + pos;
+    item->flags = EV_DELETE;
+    setKEvent(item);
+#endif
+
     idx_to_pos_[idx] = -1; // now free
     --used_count_;
     if (pos == last_pos) {
@@ -233,7 +397,11 @@ public:
    */
   LuaStackSize posToFd(int pos, lua_State *L) {
     if (pos >= used_count_ || pos < 0) return 0;
+#ifdef LUBYK_POLLER_KEVENT
+    lua_pushnumber(L, pollitems_[pos].ident);
+#else
     lua_pushnumber(L, pollitems_[pos].fd);
+#endif
     return 1;
   }
   
@@ -242,13 +410,17 @@ public:
    */
   LuaStackSize posToEvent(int pos, lua_State *L) {
     if (pos >= used_count_ || pos < 0) return 0;
+#ifdef LUBYK_POLLER_KEVENT
+    lua_pushnumber(L, pollitems_[pos].filter);
+#else
     lua_pushnumber(L, pollitems_[pos].events);
+#endif
     return 1;
   }
 
 private:
-  int addItem(int fd, int events) {
-    // printf("addItem fd:%i\n", fd);
+  int addItem(int fd, int filter, int fflags) {
+    debug_print("addItem fd:%i\n", fd);
     if (used_count_ >= pollitems_size_) {
       // we need more space: realloc
       int *sptr = (int*)realloc(idx_to_pos_, pollitems_size_ * 2 * sizeof(int));
@@ -276,8 +448,6 @@ private:
     int pos = used_count_;
     ++used_count_;
     Pollitem *item = pollitems_ + pos;
-    item->fd = fd;
-    item->events = events;
     // Hasn't been moved yet: idx == position
     // find a free idx
     int idx;
@@ -287,6 +457,36 @@ private:
     idx_to_pos_[idx] = pos;
     pos_to_idx_[pos] = idx;
 
+#ifdef LUBYK_POLLER_KEVENT
+    switch(filter) {
+      case Read:
+        EV_SET(item, fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR,
+              fflags, 0, (void*)idx);
+
+        break;
+      case Write:
+        EV_SET(item, fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR,
+              fflags, 0, (void*)idx);
+        item->flags  = EVFILT_WRITE;
+
+        break;
+      case VNode:
+        if (fflags == 0) {
+          // default File flags
+          fflags = NOTE_DELETE | NOTE_WRITE | NOTE_EXTEND | NOTE_ATTRIB | NOTE_LINK | NOTE_RENAME | NOTE_REVOKE;
+        }
+        EV_SET(item, fd, EVFILT_VNODE, EV_ADD | EV_ENABLE | EV_CLEAR,
+              fflags, 0, (void*)idx);
+
+        break;
+      default:
+        throw dub::Exception("Invalid filter value %i.", filter);
+    }                            
+    setKEvent(item);
+#else
+    item->fd = fd;
+    item->events = events;
+#endif
     return idx;
   }
 
@@ -305,6 +505,17 @@ private:
       signal(SIGINT, sInterrupted);
     }
   }
+
+#ifdef LUBYK_POLLER_KEVENT
+  void setKEvent(Pollitem *item) {
+    struct timespec timeout = {0, 0};
+    struct kevent event_data;
+    int res = kevent(kqueue_, item, 1, &event_data, 1, &timeout);
+    if (res < 0 || event_data.flags == EV_ERROR) {
+      throw dub::Exception("An error occured during set kevent (%s).", strerror(errno));
+    }
+  }
+#endif
 };
 } // lens
 

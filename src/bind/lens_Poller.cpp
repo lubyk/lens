@@ -12,7 +12,7 @@
 using namespace lens;
 
 /** lens::Poller::Poller(int reserve=8)
- * include/lens/Poller.h:94
+ * include/lens/Poller.h:121
  */
 static int Poller_Poller(lua_State *L) {
   try {
@@ -36,7 +36,7 @@ static int Poller_Poller(lua_State *L) {
 }
 
 /** lens::Poller::~Poller()
- * include/lens/Poller.h:96
+ * include/lens/Poller.h:123
  */
 static int Poller__Poller(lua_State *L) {
   try {
@@ -56,7 +56,7 @@ static int Poller__Poller(lua_State *L) {
 }
 
 /** bool lens::Poller::poll(double wake_at)
- * include/lens/Poller.h:106
+ * include/lens/Poller.h:133
  */
 static int Poller_poll(lua_State *L) {
   try {
@@ -73,7 +73,7 @@ static int Poller_poll(lua_State *L) {
 }
 
 /** LuaStackSize lens::Poller::events(lua_State *L)
- * include/lens/Poller.h:144
+ * include/lens/Poller.h:185
  */
 static int Poller_events(lua_State *L) {
   try {
@@ -87,16 +87,42 @@ static int Poller_events(lua_State *L) {
   return dub::error(L);
 }
 
-/** int lens::Poller::add(int fd, int events)
- * include/lens/Poller.h:162
+/** int lens::Poller::fflags(int idx)
+ * include/lens/Poller.h:214
+ */
+static int Poller_fflags(lua_State *L) {
+  try {
+    Poller *self = *((Poller **)dub::checksdata(L, 1, "lens.Poller"));
+    int idx = dub::checkint(L, 2);
+    lua_pushnumber(L, self->fflags(idx));
+    return 1;
+  } catch (std::exception &e) {
+    lua_pushfstring(L, "fflags: %s", e.what());
+  } catch (...) {
+    lua_pushfstring(L, "fflags: Unknown exception");
+  }
+  return dub::error(L);
+}
+
+/** int lens::Poller::add(int fd, int filter, int fflags=0)
+ * include/lens/Poller.h:263
  */
 static int Poller_add(lua_State *L) {
   try {
     Poller *self = *((Poller **)dub::checksdata(L, 1, "lens.Poller"));
-    int fd = dub::checkint(L, 2);
-    int events = dub::checkint(L, 3);
-    lua_pushnumber(L, self->add(fd, events));
-    return 1;
+    int top__ = lua_gettop(L);
+    if (top__ >= 4) {
+      int fd = dub::checkint(L, 2);
+      int filter = dub::checkint(L, 3);
+      int fflags = dub::checkint(L, 4);
+      lua_pushnumber(L, self->add(fd, filter, fflags));
+      return 1;
+    } else {
+      int fd = dub::checkint(L, 2);
+      int filter = dub::checkint(L, 3);
+      lua_pushnumber(L, self->add(fd, filter));
+      return 1;
+    }
   } catch (std::exception &e) {
     lua_pushfstring(L, "add: %s", e.what());
   } catch (...) {
@@ -105,15 +131,15 @@ static int Poller_add(lua_State *L) {
   return dub::error(L);
 }
 
-/** void lens::Poller::modify(int idx, int events, lua_State *L)
- * include/lens/Poller.h:168
+/** void lens::Poller::modify(int idx, int filter, lua_State *L)
+ * include/lens/Poller.h:269
  */
 static int Poller_modify(lua_State *L) {
   try {
     Poller *self = *((Poller **)dub::checksdata(L, 1, "lens.Poller"));
     int idx = dub::checkint(L, 2);
-    int events = dub::checkint(L, 3);
-    self->modify(idx, events, L);
+    int filter = dub::checkint(L, 3);
+    self->modify(idx, filter, L);
     return 0;
   } catch (std::exception &e) {
     lua_pushfstring(L, "modify: %s", e.what());
@@ -124,7 +150,7 @@ static int Poller_modify(lua_State *L) {
 }
 
 /** void lens::Poller::remove(int idx)
- * include/lens/Poller.h:183
+ * include/lens/Poller.h:325
  */
 static int Poller_remove(lua_State *L) {
   try {
@@ -141,7 +167,7 @@ static int Poller_remove(lua_State *L) {
 }
 
 /** int lens::Poller::count()
- * include/lens/Poller.h:209
+ * include/lens/Poller.h:357
  */
 static int Poller_count(lua_State *L) {
   try {
@@ -157,7 +183,7 @@ static int Poller_count(lua_State *L) {
 }
 
 /** LuaStackSize lens::Poller::idxToPos(int idx, lua_State *L)
- * include/lens/Poller.h:216
+ * include/lens/Poller.h:364
  */
 static int Poller_idxToPos(lua_State *L) {
   try {
@@ -173,7 +199,7 @@ static int Poller_idxToPos(lua_State *L) {
 }
 
 /** LuaStackSize lens::Poller::posToIdx(int pos, lua_State *L)
- * include/lens/Poller.h:225
+ * include/lens/Poller.h:373
  */
 static int Poller_posToIdx(lua_State *L) {
   try {
@@ -189,7 +215,7 @@ static int Poller_posToIdx(lua_State *L) {
 }
 
 /** LuaStackSize lens::Poller::posToFd(int pos, lua_State *L)
- * include/lens/Poller.h:234
+ * include/lens/Poller.h:382
  */
 static int Poller_posToFd(lua_State *L) {
   try {
@@ -205,7 +231,7 @@ static int Poller_posToFd(lua_State *L) {
 }
 
 /** LuaStackSize lens::Poller::posToEvent(int pos, lua_State *L)
- * include/lens/Poller.h:243
+ * include/lens/Poller.h:395
  */
 static int Poller_posToEvent(lua_State *L) {
   try {
@@ -216,6 +242,21 @@ static int Poller_posToEvent(lua_State *L) {
     lua_pushfstring(L, "posToEvent: %s", e.what());
   } catch (...) {
     lua_pushfstring(L, "posToEvent: Unknown exception");
+  }
+  return dub::error(L);
+}
+
+/** static LuaStackSize lens::Poller::eventMap(int fflags, lua_State *L)
+ * include/lens/Poller.h:225
+ */
+static int Poller_eventMap(lua_State *L) {
+  try {
+    int fflags = dub::checkint(L, 1);
+    return Poller::eventMap(fflags, L);
+  } catch (std::exception &e) {
+    lua_pushfstring(L, "eventMap: %s", e.what());
+  } catch (...) {
+    lua_pushfstring(L, "eventMap: Unknown exception");
   }
   return dub::error(L);
 }
@@ -237,6 +278,7 @@ static const struct luaL_Reg Poller_member_methods[] = {
   { "__gc"         , Poller__Poller       },
   { "poll"         , Poller_poll          },
   { "events"       , Poller_events        },
+  { "fflags"       , Poller_fflags        },
   { "add"          , Poller_add           },
   { "modify"       , Poller_modify        },
   { "remove"       , Poller_remove        },
@@ -245,17 +287,27 @@ static const struct luaL_Reg Poller_member_methods[] = {
   { "posToIdx"     , Poller_posToIdx      },
   { "posToFd"      , Poller_posToFd       },
   { "posToEvent"   , Poller_posToEvent    },
+  { "eventMap"     , Poller_eventMap      },
   { "__tostring"   , Poller___tostring    },
   { "deleted"      , dub::isDeleted       },
   { NULL, NULL},
 };
 
+// --=============================================== CONSTANTS
+static const struct dub::const_Reg Poller_const[] = {
+  { "Read"         , Poller::Read         },
+  { "Write"        , Poller::Write        },
+  { "VNode"        , Poller::VNode        },
+  { NULL, 0},
+};
 
 extern "C" int luaopen_lens_Poller(lua_State *L)
 {
   // Create the metatable which will contain all the member methods
   luaL_newmetatable(L, "lens.Poller");
   // <mt>
+  // register class constants
+  dub::register_const(L, Poller_const);
 
   // register member methods
   dub::fregister(L, Poller_member_methods);

@@ -11,12 +11,14 @@
 
 using namespace lens;
 
-/** lens::File::File()
- * include/lens/File.h:86
+/** lens::File::File(const char *path, Mode mode)
+ * include/lens/File.h:98
  */
 static int File_File(lua_State *L) {
   try {
-    File *retval__ = new File();
+    const char *path = dub::checkstring(L, 1);
+    lens::File::Mode mode = (lens::File::Mode)dub::checkint(L, 2);
+    File *retval__ = new File(path, mode);
     dub::pushudata(L, retval__, "lens.File", true);
     return 1;
   } catch (std::exception &e) {
@@ -28,7 +30,7 @@ static int File_File(lua_State *L) {
 }
 
 /** virtual lens::File::~File()
- * include/lens/File.h:89
+ * include/lens/File.h:112
  */
 static int File__File(lua_State *L) {
   try {
@@ -48,7 +50,7 @@ static int File__File(lua_State *L) {
 }
 
 /** int lens::File::fd()
- * include/lens/File.h:93
+ * include/lens/File.h:116
  */
 static int File_fd(lua_State *L) {
   try {
@@ -64,7 +66,7 @@ static int File_fd(lua_State *L) {
 }
 
 /** void lens::File::close()
- * include/lens/File.h:97
+ * include/lens/File.h:120
  */
 static int File_close(lua_State *L) {
   try {
@@ -80,7 +82,7 @@ static int File_close(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::read(size_t sz, lua_State *L)
- * include/lens/File.h:106
+ * include/lens/File.h:129
  */
 static int File_read(lua_State *L) {
   try {
@@ -96,7 +98,7 @@ static int File_read(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::readLine(lua_State *L)
- * include/lens/File.h:109
+ * include/lens/File.h:132
  */
 static int File_readLine(lua_State *L) {
   try {
@@ -111,7 +113,7 @@ static int File_readLine(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::readAll(lua_State *L)
- * include/lens/File.h:112
+ * include/lens/File.h:135
  */
 static int File_readAll(lua_State *L) {
   try {
@@ -126,7 +128,7 @@ static int File_readAll(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::write(lua_State *L)
- * include/lens/File.h:115
+ * include/lens/File.h:138
  */
 static int File_write(lua_State *L) {
   try {
@@ -171,6 +173,16 @@ static const struct dub::const_Reg File_const[] = {
   { "None"         , File::None           },
   { "Read"         , File::Read           },
   { "Write"        , File::Write          },
+  { "Append"       , File::Append         },
+  { "Events"       , File::Events         },
+  { "DeleteEvent"  , File::DeleteEvent    },
+  { "WriteEvent"   , File::WriteEvent     },
+  { "ExtendEvent"  , File::ExtendEvent    },
+  { "AttribEvent"  , File::AttribEvent    },
+  { "LinkEvent"    , File::LinkEvent      },
+  { "RenameEvent"  , File::RenameEvent    },
+  { "RevokeEvent"  , File::RevokeEvent    },
+  { "NoneEvent"    , File::NoneEvent      },
   { "OK"           , File::OK             },
   { "Wait"         , File::Wait           },
   { "End"          , File::End            },

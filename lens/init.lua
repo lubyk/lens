@@ -21,6 +21,7 @@ local core = require 'lens.core'
 local private = {}
 local yield            =
       coroutine.yield
+local running, sched
 
 -- ## Dependencies
 --
@@ -39,6 +40,20 @@ lib.DEPENDS = { -- doc
 -- 
 -- Note that all scheduling functions operate by using `coroutine.yield` and
 -- it is possible to use these equivalent methods instead.
+
+-- Enter event loop. This is equivalent to creating a lens.Scheduler and calling
+-- run on it. If this function is called while the scheduler is already running,
+-- it does nothing.
+function lib.run(func)
+  if not running then
+    running = true
+    if not sched then
+      sched = lib.Scheduler()
+    end
+    sched:run(func)
+    running = false
+  end
+end
 
 -- Sleep for `sec` seconds (precision depends on OS). Using nanosecond for
 -- precise sleep on linux and macosx. note that this should not be used to

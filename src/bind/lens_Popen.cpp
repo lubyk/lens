@@ -30,13 +30,14 @@ static int Popen__cast_(lua_State *L) {
   return 0;
 }
 
-/** lens::Popen::Popen(const char *program, lua_State *L)
+/** lens::Popen::Popen(const char *program, int mode)
  * include/lens/Popen.h:47
  */
 static int Popen_Popen(lua_State *L) {
   try {
     const char *program = dub::checkstring(L, 1);
-    Popen *retval__ = new Popen(program, L);
+    int mode = dub::checkint(L, 2);
+    Popen *retval__ = new Popen(program, mode);
     dub::pushudata(L, retval__, "lens.Popen", true);
     return 1;
   } catch (std::exception &e) {
@@ -100,7 +101,7 @@ static int Popen_waitpid(lua_State *L) {
 }
 
 /** int lens::File::fd()
- * include/lens/File.h:93
+ * include/lens/File.h:116
  */
 static int Popen_fd(lua_State *L) {
   try {
@@ -116,7 +117,7 @@ static int Popen_fd(lua_State *L) {
 }
 
 /** void lens::File::close()
- * include/lens/File.h:97
+ * include/lens/File.h:120
  */
 static int Popen_close(lua_State *L) {
   try {
@@ -132,7 +133,7 @@ static int Popen_close(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::read(size_t sz, lua_State *L)
- * include/lens/File.h:106
+ * include/lens/File.h:129
  */
 static int Popen_read(lua_State *L) {
   try {
@@ -148,7 +149,7 @@ static int Popen_read(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::readLine(lua_State *L)
- * include/lens/File.h:109
+ * include/lens/File.h:132
  */
 static int Popen_readLine(lua_State *L) {
   try {
@@ -163,7 +164,7 @@ static int Popen_readLine(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::readAll(lua_State *L)
- * include/lens/File.h:112
+ * include/lens/File.h:135
  */
 static int Popen_readAll(lua_State *L) {
   try {
@@ -178,7 +179,7 @@ static int Popen_readAll(lua_State *L) {
 }
 
 /** LuaStackSize lens::File::write(lua_State *L)
- * include/lens/File.h:115
+ * include/lens/File.h:138
  */
 static int Popen_write(lua_State *L) {
   try {

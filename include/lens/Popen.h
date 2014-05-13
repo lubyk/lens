@@ -44,7 +44,7 @@ class Popen : public File {
   // Forked process id
   int pid_;
 public:
-  Popen(const char *program, lua_State *L);
+  Popen(const char *program, int mode);
 
   ~Popen() {}
 

@@ -38,40 +38,41 @@ function lib.new(interval, func)
   }
   self.cb = function() self:run() end
   if func then
-    self.tick = func
+    self.timeout = func
   end
   return setmetatable(self, lib)
 end
 
 -- The callback function. Note that first argument is the timer
 -- itself.
-function lib:tick() end
+function lib:timeout() end
 
--- Start timer. The `ref` parameter is the start phase of the timer related
--- to lens.elapsed. This is used to keep multiple timers in sync.
-function lib:start(ref)
+-- Start timer. The `start_in_seconds` parameter is the delay to start the
+-- timer. This delay can be used for precise phase synchronization with other
+-- timers or to use an irregular timer.
+function lib:start(start_in_seconds)
   assert(self.interval > 0, 'Cannot run timer with negative or zero interval.')
-  local ref = ref or self.ref
-  local now = elapsed()
-  if not ref then
-    self.thread = Thread(self.cb, now)
-    self.ref = self.thread.at
-  elseif ref > now then
-    self.ref = ref
-    self.thread = Thread(self.cb, ref)
+  if self.thread then
+    print('kill')
+    -- reschedule
+    self.thread:kill()
+    self.thread = nil
+  end
+  print('starting again')
+
+  if not start_in_seconds then
+    -- start or reschedule right away
+    self.thread = Thread(self.cb)
   else
-    -- Compute next trigger from ref and interval
-    local diff = now - ref
-    local c = floor(diff / self.interval) + 1
-    self.ref = now + self.interval * c
-    self.thread = Thread(self.cb, self.ref)
+    print('create new thread', start_in_seconds + elapsed())
+    self.thread = Thread(self.cb, start_in_seconds + elapsed())
   end
 end
 
 function lib:run()
   if self.interval > 0 then
     while self.thread do
-      local interval = self:tick()
+      local interval = self:timeout()
       if interval then
         if interval <= 0 then
           self:setInterval(0)
@@ -92,12 +93,18 @@ function lib:setInterval(interval)
 
   if self.thread then
     -- Running timer: remove from scheduler.
-    self:stop()
+    local ref = self.thread.at
     if interval == 0 then
       -- Stop.
+      self:stop()
     else
-      -- Add back and compute reference position for next trigger.
-      self:start()
+      -- Change interval and restart with same phase.
+      local diff = elapsed() - ref
+      local c = floor(diff / self.interval) + 1
+      -- FIXME: we should use 'wakeAt' so that we can specify absolute time and
+      -- avoid drift by calls to elapsed().
+      -- self:wakeAt(ref + interval * c)
+      self:start(self.interval * c)
     end
   else
     -- Not running.

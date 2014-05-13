@@ -9,8 +9,8 @@ local core  = require 'lens.core'
 local lib   = core.Popen
 local new   = core.Popen.new
 
-local           OK,           Wait =
-      lens.File.OK, lens.File.Wait
+local           OK,           Wait, Read =
+      lens.File.OK, lens.File.Wait, lens.File.Read
 
 local           yield,     readLine,     write,        len,        sub =
       coroutine.yield, lib.readLine, lib.write, string.len, string.sub
@@ -28,7 +28,7 @@ lib.__write = write
 -- TODO: implement bidirectional pipes.
 function lib.new(cmd, mode)
   -- Optimize fd ? Implies using a table for self...
-  return new(cmd, mode or 'r')
+  return new(cmd, mode or Read)
 end
 
 -- These lua helpers must be copied from File in each sub-class in order to

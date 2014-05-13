@@ -48,7 +48,7 @@ using namespace lens;
 LuaStackSize File::read(size_t sz, lua_State *L) {
   // This should not happen. Error.
   if (fd_ == 0) throw dub::Exception("Cannot read from a closed file.");
-  if (!(mode_ & Read)) throw dub::Exception("File mode not compatible with read operation.");
+  if (!(mode_ == Read)) throw dub::Exception("File mode not compatible with read operation.");
   // TODO
   return 0;
 }
@@ -116,7 +116,7 @@ int lk::Socket::recvBytes(lua_State *L, int sz) {
 // Return op code and string.
 LuaStackSize File::readLine(lua_State *L) {
   if (fd_ == 0) throw dub::Exception("Cannot read from a closed file.");
-  if (!(mode_ & Read)) throw dub::Exception("File mode not compatible with read operation.");
+  if (!(mode_ == Read)) throw dub::Exception("File mode not compatible with read operation.");
 
   bool has_data = buffer_i_ < buffer_length_;
   luaL_Buffer buffer;
@@ -235,7 +235,7 @@ LuaStackSize lk::Socket::recvAll(lua_State *L) {
 // Return op and written size
 LuaStackSize File::write(lua_State *L) {
   if (fd_ == 0) throw dub::Exception("Cannot write to a closed file.");
-  if (!(mode_ & Write)) throw dub::Exception("File mode not compatible with write operation.");
+  if (!(mode_ == Write || mode_ == Append)) throw dub::Exception("File mode not compatible with write operation.");
 
   size_t sz;
   const char *str = dub::checklstring(L, 2, &sz);

@@ -33,6 +33,9 @@
 
 #include "dub/dub.h"
 
+#include <sys/fcntl.h> // O_READ
+#include <errno.h>     // errno
+
 // 8 Ko
 // Maybe we could pass an argument to make this size smaller/bigger
 #define MAX_BUFF_SIZE 8196
@@ -67,9 +70,23 @@ class File {
   
 public:
   enum Mode {
-    None  = 0,
-    Read  = 1,
-    Write = 2,
+    None   = 0,
+    Read   = O_RDONLY,
+    Write  = O_WRONLY,
+    Append = O_APPEND,
+    Events = O_EVTONLY,
+  };
+
+  
+  enum Events {
+    DeleteEvent  = 0x00000001,    /* vnode was removed */
+    WriteEvent   = 0x00000002,    /* data contents changed */
+    ExtendEvent  = 0x00000004,    /* size increased */
+    AttribEvent  = 0x00000008,    /* attributes changed */
+    LinkEvent    = 0x00000010,    /* link count changed */
+    RenameEvent  = 0x00000020,    /* vnode was renamed */
+    RevokeEvent  = 0x00000040,    /* vnode access was revoked */
+    NoneEvent    = 0x00000080,    /* No specific vnode event: to test for EVFILT_READ activation*/
   };
 
   enum IOCode {
@@ -78,12 +95,18 @@ public:
     End,
   };
 
-  File()
+  File(const char *path, Mode mode)
     : fd_(0)
-    , mode_(None)
+    , mode_(mode)
     , buffer_length_(0)
     , buffer_i_(0)
   {
+    if (mode != None) {
+      fd_ = open(path, (int)mode);
+      if (fd_ < 0) {
+        throw dub::Exception("Could not open file '%s' (%s).", path, strerror(errno));
+      }
+    }
   }
 
   virtual ~File() {

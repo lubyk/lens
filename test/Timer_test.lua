@@ -5,7 +5,7 @@
 
 
 --]]------------------------------------------------------
-local lens    = require 'lens'
+local lens   = require 'lens'
 local lut    = require 'lut'
 local should = lut.Test 'lens.Timer'
 

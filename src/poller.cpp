@@ -28,7 +28,7 @@
 */
 #include "lens/Poller.h"
 
-namespace lens {
+using namespace lens;
 
 pthread_key_t Poller::sThisKey = 0;
 
@@ -70,8 +70,10 @@ Poller::Poller(int reserve)
   memset(idx_to_pos_, -1, reserve * sizeof(int));
   memset(pos_to_idx_, -1, reserve * sizeof(int));
 
+#ifdef LUBYK_POLLER_KEVENT
+  kqueue_ = kqueue();
+#endif
   setupInterruptHook();
 }
 
-} // lens
 

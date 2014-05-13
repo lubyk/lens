@@ -13,6 +13,8 @@ local setmetatable, create,           resume,           status           =
 local format,        insert,       elapsed      =
       string.format, table.insert, lens.elapsed
       
+local POLLIN,           POLLOUT,           VNODE =
+      lens.Poller.Read, lens.Poller.Write, lens.Poller.VNode
 
 local operations = {}
 local scheduleAt, removeFd, runThread
@@ -97,6 +99,8 @@ function lib:loop()
     thread = self.at_next
     if thread then
       wake_at = thread.at
+    else
+      print('no at next', wake_at)
     end
 
     if self.fd_count == 0 and wake_at == -1 then
@@ -123,6 +127,9 @@ function lib:loop()
       local ev_idx = events[i]
       local thread = ev_idx and idx_to_thread[ev_idx]
       while thread and self.should_run do
+        if thread.filter == VNODE then
+          thread.retval = self.poller:fflags(ev_idx)
+        end
         if runThread(self, thread) then
           -- run fd thread again
         else
@@ -146,7 +153,7 @@ end
 ------------------------------------------------------ PRIVATE
 
 function runThread(self, thread)
-  local ok, a, b, c = resume(thread.co)
+  local ok, a, b, c = resume(thread.co, thread.retval)
   if ok then
     if a then
       local func = operations[a]
@@ -172,7 +179,7 @@ function runThread(self, thread)
       -- Thread has an error handler, call it
       thread.error(a, debug.traceback(thread.co))
     else
-      print('UNPROTECTED ERROR', a, thread.co, debug.traceback(thread.co))
+      print('Error', a, thread.co, debug.traceback(thread.co))
       if thread.fd then
         removeFd(self, thread)
       end
@@ -183,7 +190,6 @@ function runThread(self, thread)
 end  
 
 -- Add a thread and schedule at thread.at
--- The 'thread' object is actually `wrap`
 function scheduleAt(self, _, thread)
   local at = thread.at
 
@@ -222,48 +228,53 @@ function removeFd(self, thread)
   thread.idx = nil
 end
 
-function readWriteFd(self, thread, fd, event)
+function changeFdFilter(self, thread, fd, filter, flags)
+  flags = flags or 0
   if thread.fd then
     if thread.fd == fd then
       -- same
-      self.poller:modify(thread.idx, event)
+      self.poller:modify(thread.idx, filter, fd, flags)
     else
       -- changed fd
       assert(fd, 'Missing fd value. Check waitRead calls.')
-      self.poller:modify(thread.idx, event, fd)
+      self.poller:modify(thread.idx, filter, fd, flags)
     end
   else
     -- add fd
     thread.fd = fd
     self.fd_count = self.fd_count + 1
 
-    thread.idx = self.poller:add(fd, event)
+    thread.idx = self.poller:add(fd, filter, flags)
 
     self.idx_to_thread[thread.idx] = thread
   end
 
-  -- We need this information in case we change poller.
-  thread.event = event
+  -- We need this information in case we change poller and to retrieve filter
+  -- flags.
+  thread.filter = filter
 end
 
 ------------------------------------------------------ OPERATIONS
 
 operations.create = scheduleAt
 
-local POLLIN, POLLOUT = 1, 2 -- compatible with zmq
-
 function operations.read(self, thread, fd)
-  readWriteFd(self, thread, fd, POLLIN)
+  changeFdFilter(self, thread, fd, POLLIN)
 end
 
 function operations.write(self, thread, fd)
-  readWriteFd(self, thread, fd, POLLOUT)
+  changeFdFilter(self, thread, fd, POLLOUT)
+end
+
+function operations.vnode(self, thread, fd, flags)
+  flags = flags or 0
+  changeFdFilter(self, thread, fd, VNODE, flags)
 end
 
 function operations.sleep(self, thread, duration)
   thread.at = elapsed() + duration
   if thread.fd then
-    removeFd(thread)
+    removeFd(self, thread)
   end
   scheduleAt(self, nil, thread)
 end
@@ -271,13 +282,13 @@ end
 function operations.wait(self, thread, duration)
   thread.at = thread.at + duration
   if thread.fd then
-    removeFd(thread)
+    removeFd(self, thread)
   end
   scheduleAt(self, nil, thread)
 end
 
 function operations.kill(self, thread, other)
-  if thread.fd then
+  if other.fd then
     removeFd(self, other)
   end
   local p = self
@@ -291,6 +302,8 @@ function operations.kill(self, thread, other)
     p = t
     t = t.at_next
   end
+  -- continue after kill
+  scheduleAt(self, nil, thread)
 end
 
 function operations.poller(self, thread, new_poller)

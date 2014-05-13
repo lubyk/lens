@@ -39,25 +39,16 @@
 
 using namespace lens;
 
-Popen::Popen(const char *program, lua_State *L)
-  : pid_(0)
+Popen::Popen(const char *program, int mode)
+  : File(NULL, File::None)
+  , pid_(0)
 {
-  size_t len;
-  const char *mstr = dub::checklstring(L, 2, &len);
 
-  File::Mode mode;
-  switch(len == 1 ? mstr[0] : '?') {
-    case 'r':
-      mode = Read;
-      break;
-    case 'w':
-      mode = Write;
-      break;
-    default:
-      throw dub::Exception("Invalid mode '%s' (should be 'r' or 'w').", mstr);
+  if (mode != File::Read && mode != File::Write) {
+      throw dub::Exception("Invalid mode %i (should be File.Read or File.Write).", mode);
   }
 
-  setMode(mode);
+  setMode((File::Mode) mode);
 
   // Pipe file descriptors
   int pipes[2];

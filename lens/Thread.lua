@@ -12,7 +12,7 @@ local lib     = lub.class 'lens.Thread'
 local assert, setmetatable, yield,           create,           running   = 
       assert, setmetatable, coroutine.yield, coroutine.create, coroutine.running
 
--- Use a 'make' function because the Scheduler needs to create threads without
+-- We need a 'make' function so the Scheduler can create threads without
 -- yielding to add them to the queue.
 local function make(func, at)
   assert(func, 'Cannot create thread without function.')
@@ -27,7 +27,8 @@ end
 lib.make = make
 
 -- Create a new Thread object and insert it inside the
--- currently running scheduler's event queue.
+-- currently running scheduler's event queue. The thread is retained in the
+-- scheduler as long as it is alive (function has not reached the end).
 function lib.new(func, at)
   if not running() then
     error('Cannot create thread outside of running scheduler.')
