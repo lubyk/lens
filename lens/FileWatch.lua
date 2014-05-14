@@ -7,7 +7,7 @@
   so that listening to files takes as few resources as
   possible.
 
-  See [LiveCoding](examples.lens.LiveCoding.html) example.
+  See [LiveCoding](example.lens.LiveCoding.html) example.
 
 --]]------------------------------------------------------
 local lub  = require 'lub'

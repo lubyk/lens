@@ -28,6 +28,12 @@ local def = {
   libraries = {'stdc++'},
   platlibs = {
     linux   = {'stdc++', 'rt'},
+    macosx  = {
+      'stdc++',
+      '-framework Foundation',
+      '-framework Cocoa',
+      'objc',
+    },
   },
 }
 

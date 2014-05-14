@@ -64,8 +64,10 @@ namespace lens {
  *
  * @dub string_format: %%f
  *      string_args: self->count()
+ *      push: dub_pushobject
+ *      ignore: resume, backPoll
  */
-class Poller {
+class Poller : public dub::Thread {
 
 #ifdef LUBYK_POLLER_KEVENT
   typedef struct kevent Pollitem;
@@ -108,6 +110,15 @@ class Poller {
    * poll to return false.
    */
   bool interrupted_;
+
+  /** This is used to pass 'wake_at' value from main thread to ext kevent
+   * thread when running GUI.
+   */
+  double wake_at_;
+
+  /** Return value from poll function used in external thread.
+   */
+  bool retval_;
 
   /** Used to get back to the current poll in the interrupt handler.
    */
@@ -191,6 +202,41 @@ public:
     }
 
     return true;
+  }
+
+  /** Moving kevent and polling to an external thread. This is required to
+   * run OS event loop on main thread. This function never returns.
+   */
+  void runGUI(double wake_at);
+
+  /** Called from background thread.
+   */
+  bool backPoll() {
+    retval_ = poll(wake_at_);
+    // wait for 'resume' to end.
+    return retval_;
+  }
+
+  /** Called from main thread when external thread 'backPoll' returns.
+   */
+  bool resume() {
+    bool res = true;
+    if (!dub_pushcallback("resume")) return false;
+
+    lua_pushboolean(dub_L, retval_);
+    // <func> <self> <retval>
+    dub_call(2, 1);
+
+    // return value => wake_at or nil to halt.
+    if (lua_isnumber(dub_L, -1)) {
+      wake_at_ = lua_tonumber(dub_L, -1);
+    } else {
+      res = false;
+    }
+
+    lua_pop(dub_L, 1);
+
+    return res;
   }
 
   /** Return a table with all event idx or nil.
@@ -450,7 +496,7 @@ private:
     Pollitem *item = pollitems_ + pos;
     // Hasn't been moved yet: idx == position
     // find a free idx
-    int idx;
+    intptr_t idx;
     for(idx = 0; idx < pollitems_size_; ++idx) {
       if (idx_to_pos_[idx] < 0) break;
     }

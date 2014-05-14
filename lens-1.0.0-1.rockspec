@@ -33,6 +33,7 @@ build = {
     -- Plain Lua files
     ['lens'           ] = 'lens/init.lua',
     ['lens.File'      ] = 'lens/File.lua',
+    ['lens.FileWatch' ] = 'lens/FileWatch.lua',
     ['lens.Finalizer' ] = 'lens/Finalizer.lua',
     ['lens.Poller'    ] = 'lens/Poller.lua',
     ['lens.Popen'     ] = 'lens/Popen.lua',
@@ -47,7 +48,6 @@ build = {
         'src/poller.cpp',
         'src/popen.cpp',
         'src/bind/dub/dub.cpp',
-        'src/bind/dub/dub.cpp~',
         'src/bind/lens_core.cpp',
         'src/bind/lens_File.cpp',
         'src/bind/lens_Finalizer.cpp',
@@ -58,6 +58,23 @@ build = {
       libraries = {'stdc++'},
     },
   },
+  platforms = {
+    linux = {
+      modules = {
+        ['lens.core'] = {
+          libraries = {'stdc++', 'rt'},
+        },
+      },
+    },
+    macosx = {
+      modules = {
+        ['lens.core'] = {
+          sources = {
+            [11] = 'src/macosx/poller.mm',
+          },
+          libraries = {'stdc++', '-framework Foundation', '-framework Cocoa', 'objc'},
+        },
+      },
+    },
+  },
 }
-
-

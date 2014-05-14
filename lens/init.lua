@@ -16,6 +16,7 @@
 --]]--------------------
 local lub  = require 'lub'
 local lib  = lub.Autoload 'lens'
+--local core = {init = function() end}
 local core = require 'lens.core'
 
 local private = {}
@@ -56,6 +57,16 @@ function lib.run(func)
     -- Make sure not code is executed below 'lens.run'
     os.exit(0)
   end
+end
+
+-- Stop scheduler and exit.
+-- Usage:
+--
+--   lens.halt()
+--   -- is the same as
+--   coroutine.yield('halt')
+function lib.halt()
+  yield('halt')
 end
 
 -- Sleep for `sec` seconds (precision depends on OS). Using nanosecond for

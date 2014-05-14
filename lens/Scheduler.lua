@@ -9,8 +9,8 @@ local lub     = require 'lub'
 local lens    = require 'lens'
 local lib     = lub.class 'lens.Scheduler'
 
-local setmetatable, create,           resume,           status           =
-      setmetatable, coroutine.create, coroutine.resume, coroutine.status
+local setmetatable, create,           resume,           yield,           status           =
+      setmetatable, coroutine.create, coroutine.resume, coroutine.yield, coroutine.status
       
 local format,        insert,       elapsed      =
       string.format, table.insert, lens.elapsed
@@ -19,7 +19,7 @@ local POLLIN,           POLLOUT,           VNODE =
       lens.Poller.Read, lens.Poller.Write, lens.Poller.VNode
 
 local operations = {}
-local scheduleAt, removeFd, runThread
+local scheduleAt, removeFd, runThread, guiPoll
 
 -- Create a new Scheduler object.
 function lib.new()
@@ -150,6 +150,10 @@ function lib:loop()
       end
     end
   end -- while self.should_run
+  if self.restart_func then
+    -- Restart loop
+    self.restart_func()
+  end
 end
 
 ------------------------------------------------------ PRIVATE
@@ -322,5 +326,70 @@ function operations.poller(self, thread, new_poller)
   assert(false, 'Poller replacement not yet implemented')
 end
 
+function operations.gui(self, thread)
+  if self.gui_coro then
+    -- What do we do if this is called again ?
+    print('ERROR gui already running', debug.traceback(thread.co))
+    return --scheduleAt(self, nil, thread)
+  end
+
+  local gui_coro = coroutine.create(function()
+    -- We will run lopp in new coroutine so that calls to
+    -- sched:poll() will yield.
+    self:loop()
+  end)
+
+  self.gui_coro = gui_coro
+
+
+  -- Set poller resume callback to resume coroutine.
+  function self.poller.resume(poller, poll_retval)
+    local ok, wake_at = resume(gui_coro, poll_retval)
+    if not ok then
+      self.should_run = false
+    end
+    -- End of main thread code perform: continue background thread.
+    if self.should_run then
+      return wake_at
+    end
+  end
+
+  -- Replace poller:poll method to yield.
+  self.poller.poll = guiPoll
+
+  -- End current loop and restart with coroutine
+  self.restart_func = function()
+    -- Only run once
+    self.restart_func = nil
+    sched = self
+    self.should_run = true
+    -- Run until guiPoll
+    local ok, wake_at = resume(gui_coro)
+    if not ok then
+      print('ERROR in scheduler', wake_at, debug.traceback(gui_coro))
+      self.should_run = false
+    else
+      -- continue the thread that started the gui
+      scheduleAt(self, nil, thread)
+
+      -- Future 'resume' operations will be triggered by background thread.
+      self.poller:runGUI(0)
+    end
+  end
+
+  -- Force end of current run loop
+  self.should_run = false
+end
+
+function setupGuiPoll(poller, wake_at)
+  -- Prepare
+  poller.poll = guiPoll
+end
+
+function guiPoll(poller, wake_at)
+  -- This yield gives control back to background thread and OS will post
+  -- 'resume' callback on main thread when kevent returns.
+  return yield(wake_at)
+end
 
 return lib
