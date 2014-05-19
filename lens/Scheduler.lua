@@ -339,7 +339,8 @@ function operations.gui(self, thread)
   if self.gui_coro then
     -- Ignore call, this can happen when external libraries do not know if the
     -- gui is running or not.
-    return scheduleAt(self, nil, thread)
+    -- Resume thread immediately.
+    return true
   end
 
   local gui_coro = coroutine.create(function()
@@ -355,6 +356,7 @@ function operations.gui(self, thread)
   function self.poller.resume(poller, poll_retval)
     local ok, wake_at = resume(gui_coro, poll_retval)
     if not ok then
+      print(wake_at, debug.traceback(gui_coro))
       self.should_run = false
     end
     -- End of main thread code perform: continue background thread.
