@@ -111,6 +111,10 @@ class Poller : public dub::Thread {
    */
   bool interrupted_;
 
+  /** Set to true if gui is running.
+   */
+  bool gui_running_;
+
   /** This is used to pass 'wake_at' value from main thread to ext kevent
    * thread when running GUI.
    */
@@ -123,6 +127,10 @@ class Poller : public dub::Thread {
   /** Used to get back to the current poll in the interrupt handler.
    */
   static pthread_key_t sThisKey;
+
+  /** Implementation specific.
+   */
+  void *impl_ptr_;
 public:
 
   enum Filters {
@@ -207,7 +215,7 @@ public:
   /** Moving kevent and polling to an external thread. This is required to
    * run OS event loop on main thread. This function never returns.
    */
-  void runGUI(double wake_at);
+  void runGUI(double wake_at, lua_State *L);
 
   /** Called from background thread.
    */
@@ -539,9 +547,11 @@ private:
   static void sInterrupted(int i) {
     signal(i, SIG_DFL); // double interrupt == kill
     Poller *p = (Poller*)pthread_getspecific(sThisKey);
-    p->interrupted_ = true;
+    p->interrupted();
     // continue
   }
+
+  void interrupted();
 
   void setupInterruptHook() {
     Poller *p = (Poller*)pthread_getspecific(sThisKey);

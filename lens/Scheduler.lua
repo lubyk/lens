@@ -115,7 +115,8 @@ function lib:loop()
     if not self.poller:poll(wake_at) then
       -- interrupted
       self.should_run = false
-      print(' interrupted')
+      print('')
+      --print(' interrupted')
       break
     end
 
@@ -154,6 +155,14 @@ function lib:loop()
     -- Restart loop
     self.restart_func()
   end
+  self:willTerminate()
+end
+
+-- # Callback
+--
+-- Called just before the scheduler stops running.
+function lib:willTerminate()
+  print('Bye...')
 end
 
 ------------------------------------------------------ PRIVATE
@@ -328,9 +337,9 @@ end
 
 function operations.gui(self, thread)
   if self.gui_coro then
-    -- What do we do if this is called again ?
-    print('ERROR gui already running', debug.traceback(thread.co))
-    return --scheduleAt(self, nil, thread)
+    -- Ignore call, this can happen when external libraries do not know if the
+    -- gui is running or not.
+    return scheduleAt(self, nil, thread)
   end
 
   local gui_coro = coroutine.create(function()

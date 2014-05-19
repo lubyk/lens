@@ -39,7 +39,9 @@ Poller::Poller(int reserve)
       , pos_to_idx_(NULL)
       , used_count_(0)
       , event_count_(0)
-      , interrupted_(false) {
+      , interrupted_(false)
+      , gui_running_(false)
+  {
   // create a key to find 'lua_State' in current thread (used to handle
   // interrupts in Poller::poll.
   if (!sThisKey) pthread_key_create(&sThisKey, NULL);

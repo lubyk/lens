@@ -72,14 +72,14 @@ static int Poller_poll(lua_State *L) {
   return dub::error(L);
 }
 
-/** void lens::Poller::runGUI(double wake_at)
+/** void lens::Poller::runGUI(double wake_at, lua_State *L)
  * include/lens/Poller.h:210
  */
 static int Poller_runGUI(lua_State *L) {
   try {
     Poller *self = *((Poller **)dub::checksdata(L, 1, "lens.Poller"));
     double wake_at = dub::checknumber(L, 2);
-    self->runGUI(wake_at);
+    self->runGUI(wake_at, L);
     return 0;
   } catch (std::exception &e) {
     lua_pushfstring(L, "runGUI: %s", e.what());
@@ -90,7 +90,7 @@ static int Poller_runGUI(lua_State *L) {
 }
 
 /** LuaStackSize lens::Poller::events(lua_State *L)
- * include/lens/Poller.h:245
+ * include/lens/Poller.h:244
  */
 static int Poller_events(lua_State *L) {
   try {
@@ -105,7 +105,7 @@ static int Poller_events(lua_State *L) {
 }
 
 /** int lens::Poller::fflags(int idx)
- * include/lens/Poller.h:274
+ * include/lens/Poller.h:273
  */
 static int Poller_fflags(lua_State *L) {
   try {
@@ -122,7 +122,7 @@ static int Poller_fflags(lua_State *L) {
 }
 
 /** int lens::Poller::add(int fd, int filter, int fflags=0)
- * include/lens/Poller.h:323
+ * include/lens/Poller.h:322
  */
 static int Poller_add(lua_State *L) {
   try {
@@ -149,7 +149,7 @@ static int Poller_add(lua_State *L) {
 }
 
 /** void lens::Poller::modify(int idx, int filter, lua_State *L)
- * include/lens/Poller.h:330
+ * include/lens/Poller.h:329
  */
 static int Poller_modify(lua_State *L) {
   try {
@@ -167,7 +167,7 @@ static int Poller_modify(lua_State *L) {
 }
 
 /** void lens::Poller::remove(int idx)
- * include/lens/Poller.h:387
+ * include/lens/Poller.h:386
  */
 static int Poller_remove(lua_State *L) {
   try {
@@ -184,7 +184,7 @@ static int Poller_remove(lua_State *L) {
 }
 
 /** int lens::Poller::count()
- * include/lens/Poller.h:420
+ * include/lens/Poller.h:419
  */
 static int Poller_count(lua_State *L) {
   try {
@@ -200,7 +200,7 @@ static int Poller_count(lua_State *L) {
 }
 
 /** LuaStackSize lens::Poller::idxToPos(int idx, lua_State *L)
- * include/lens/Poller.h:427
+ * include/lens/Poller.h:426
  */
 static int Poller_idxToPos(lua_State *L) {
   try {
@@ -216,7 +216,7 @@ static int Poller_idxToPos(lua_State *L) {
 }
 
 /** LuaStackSize lens::Poller::posToIdx(int pos, lua_State *L)
- * include/lens/Poller.h:436
+ * include/lens/Poller.h:435
  */
 static int Poller_posToIdx(lua_State *L) {
   try {
@@ -232,7 +232,7 @@ static int Poller_posToIdx(lua_State *L) {
 }
 
 /** LuaStackSize lens::Poller::posToFd(int pos, lua_State *L)
- * include/lens/Poller.h:445
+ * include/lens/Poller.h:444
  */
 static int Poller_posToFd(lua_State *L) {
   try {
@@ -248,7 +248,7 @@ static int Poller_posToFd(lua_State *L) {
 }
 
 /** LuaStackSize lens::Poller::posToEvent(int pos, lua_State *L)
- * include/lens/Poller.h:458
+ * include/lens/Poller.h:457
  */
 static int Poller_posToEvent(lua_State *L) {
   try {
@@ -264,7 +264,7 @@ static int Poller_posToEvent(lua_State *L) {
 }
 
 /** static LuaStackSize lens::Poller::eventMap(int fflags, lua_State *L)
- * include/lens/Poller.h:285
+ * include/lens/Poller.h:284
  */
 static int Poller_eventMap(lua_State *L) {
   try {
