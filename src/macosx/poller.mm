@@ -72,7 +72,6 @@ using namespace lens;
 void Poller::runGUI(double wake_at, lua_State *L) {
   if (gui_running_) return;
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-  printf("lens.Poller NSApplication sharedApplication\n");
   [NSApplication sharedApplication];
 
   LPoller *lpoller = [[LPoller alloc] initWithMaster:this lua:L];
@@ -92,12 +91,3 @@ void Poller::runGUI(double wake_at, lua_State *L) {
   [pool release];
 }
 
-void Poller::interrupted() {
-  interrupted_ = true;
-  if (gui_running_) {
-    LPoller *lpoller = (LPoller *)impl_ptr_;
-    retval_ = false; // inform about interruption
-    [lpoller performSelectorOnMainThread:@selector(resume) withObject:nil waitUntilDone:YES];
-    [NSApp terminate:nil];
-  }
-}

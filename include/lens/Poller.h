@@ -228,6 +228,7 @@ public:
   /** Called from main thread when external thread 'backPoll' returns.
    */
   bool resume() {
+    bool interrupt = interrupted_;
     bool res = true;
     if (!dub_pushcallback("resume")) return false;
 
@@ -244,6 +245,12 @@ public:
 
     lua_pop(dub_L, 1);
 
+    if (!interrupt && interrupted_ && res) {
+      // run resume one last time
+      // to clean quit lua
+      resume();
+      return false;
+    }
     return res;
   }
 
@@ -551,7 +558,12 @@ private:
     // continue
   }
 
-  void interrupted();
+  void interrupted() {
+    interrupted_ = true;
+    if (gui_running_) {
+      retval_ = false; // inform about interruption
+    }
+  }
 
   void setupInterruptHook() {
     Poller *p = (Poller*)pthread_getspecific(sThisKey);
