@@ -1,5 +1,6 @@
 == 1.0.0
 
   * Migrated code from lk.
-  * Classes: Scheduler, Thread, Timer, File, Popen
-  * Methods: elapsed
+  * Classes: Scheduler, Thread, Timer, File, Popen.
+  * Methods: elapsed.
+  * Using lut.Builder to generated build files.

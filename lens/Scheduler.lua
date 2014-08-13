@@ -199,11 +199,15 @@ function runThread(self, thread)
       thread.error(a, debug.traceback(thread.co))
     else
       print('Error', a, thread.co, debug.traceback(thread.co))
+    end
+
+    if thread.restart then
+      thread.co = create(thread.func)
+    else
       if thread.fd then
         removeFd(self, thread)
       end
       thread.co = nil
-      -- error(a)
     end
   end
 end  
@@ -275,7 +279,15 @@ end
 
 ------------------------------------------------------ OPERATIONS
 
-operations.create = scheduleAt
+function operations.create(self, _, thread)
+  thread.sched = self
+  return scheduleAt(self, _, thread)
+end
+
+-- nodoc
+function lib:createThread(thread)
+  operations.create(self, _, thread)
+end
 
 function operations.read(self, thread, fd)
   changeFdFilter(self, thread, fd, POLLIN)
@@ -328,7 +340,18 @@ function operations.kill(self, thread, other)
     t = t.at_next
   end
   -- continue after kill
-  scheduleAt(self, nil, thread)
+  if thread then
+    scheduleAt(self, nil, thread)
+  end
+end
+-- nodoc
+lib.killThread = operations.kill
+
+-- Return scheduler to schedule timers without yield from in C-call.
+function operations.sched(self, thread, fd)
+  -- Resume thread immediately
+  thread.retval = self
+  return true
 end
 
 function operations.poller(self, thread, new_poller)

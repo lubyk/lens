@@ -14,7 +14,7 @@ local Scheduler,      Timer,      sleep,      elapsed =
 
 function should.notCreateOutOfScheduler()
   assertError('Cannot create timer outside of running scheduler', function()
-    local t = Timer(function()
+    local t = Timer(0.5, function()
     end)
   end)
 end

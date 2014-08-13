@@ -44,6 +44,8 @@ function lib.new(interval, callback)
   if callback then
     self.timeout = callback
   end
+  self.sched = yield('sched')
+  print('Timer.new', self.sched.type)
   return setmetatable(self, lib)
 end
 
@@ -62,9 +64,9 @@ function lib:start(start_in_seconds)
 
   if not start_in_seconds then
     -- start or reschedule right away
-    self.thread = Thread(self.cb)
+    self.thread = Thread(self.cb, nil, self.sched)
   else
-    self.thread = Thread(self.cb, start_in_seconds + elapsed())
+    self.thread = Thread(self.cb, start_in_seconds + elapsed(), self.sched)
   end
 end
 
