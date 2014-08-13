@@ -185,6 +185,7 @@ public:
       // negative timeout == wait forever
       event_count_ = ::kevent(kqueue_, NULL, 0, events_data_, MAX_REVENT_COUNT, NULL);
     }
+    debug_print("poll events:%i\n", event_count_);
 #else
     // poll expects milliseconds
     // negative timeout == wait forever
@@ -399,7 +400,6 @@ public:
   /** Remove an item by its id.
    */
   void remove(int idx) {
-    debug_print("remove idx:%i.\n", idx);
     if (idx < 0 || idx >= pollitems_size_) {
       // Allready removed = bug.
       throw dub::Exception("Invalid index '%i'.", idx);
@@ -412,6 +412,7 @@ public:
     }
 #ifdef LUBYK_POLLER_KEVENT
     Pollitem *item = pollitems_ + pos;
+    debug_print("remove fd:%i.\n", (int)item->ident);
     item->flags = EV_DELETE;
     setKEvent(item);
 #endif
@@ -526,9 +527,8 @@ private:
 
         break;
       case Write:
-        EV_SET(item, fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR,
+        EV_SET(item, fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR,
               fflags, 0, (void*)idx);
-        item->flags  = EVFILT_WRITE;
 
         break;
       case VNode:
@@ -576,11 +576,14 @@ private:
 
 #ifdef LUBYK_POLLER_KEVENT
   void setKEvent(Pollitem *item) {
-    struct timespec timeout = {0, 0};
-    struct kevent event_data;
-    int res = kevent(kqueue_, item, 1, &event_data, 1, &timeout);
-    if (res < 0 || event_data.flags == EV_ERROR) {
-      throw dub::Exception("An error occured during set kevent (%s).", strerror(errno));
+    int res = ::kevent(kqueue_, item, 1, NULL, 0, NULL);
+    if (res < 0) {
+      if (item->flags == EV_DELETE && errno == EAGAIN) {
+        printf("EAGAIN with EV_DELETE..\n");
+        // FIXME: is it OK to ignore this error ?
+      } else {
+        throw dub::Exception("An error occured during set kevent (%s).", strerror(errno));
+      }
     }
   }
 #endif

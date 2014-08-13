@@ -4,3 +4,4 @@
   * Classes: Scheduler, Thread, Timer, File, Popen.
   * Methods: elapsed.
   * Using lut.Builder to generated build files.
+  * Migrated lk.Socket to new scheduler.

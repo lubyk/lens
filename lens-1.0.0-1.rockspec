@@ -38,6 +38,7 @@ build = {
     ['lens.Poller'    ] = 'lens/Poller.lua',
     ['lens.Popen'     ] = 'lens/Popen.lua',
     ['lens.Scheduler' ] = 'lens/Scheduler.lua',
+    ['lens.Socket'    ] = 'lens/Socket.lua',
     ['lens.Thread'    ] = 'lens/Thread.lua',
     ['lens.Timer'     ] = 'lens/Timer.lua',
     -- C module
@@ -48,11 +49,13 @@ build = {
         'src/poller.cpp',
         'src/popen.cpp',
         'src/bind/dub/dub.cpp',
+        'src/bind/dub/dub.cpp~',
         'src/bind/lens_core.cpp',
         'src/bind/lens_File.cpp',
         'src/bind/lens_Finalizer.cpp',
         'src/bind/lens_Poller.cpp',
         'src/bind/lens_Popen.cpp',
+        'src/bind/lens_Socket.cpp',
       },
       incdirs   = {'include', 'src/bind'},
       libraries = {'stdc++'},
@@ -70,7 +73,7 @@ build = {
       modules = {
         ['lens.core'] = {
           sources = {
-            [11] = 'src/macosx/poller.mm',
+            [13] = 'src/macosx/poller.mm',
           },
           libraries = {'stdc++', '-framework Foundation', '-framework Cocoa', 'objc'},
         },

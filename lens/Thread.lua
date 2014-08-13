@@ -46,9 +46,17 @@ function lib.new(func, at, sched)
 end
 
 
-function lib:kill(sched)
+function lib:kill()
   self.sched:killThread(nil, self)
   -- We avoid using 'yield' in case the kill happens from a C callback.
+end
+
+-- Running thread will wait for this thread to finish.
+function lib:join()
+  if self.co then
+    -- ignore if thread is already dead
+    yield('join', self)
+  end
 end
 
 -- PRIVATE

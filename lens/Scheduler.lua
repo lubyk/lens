@@ -19,7 +19,7 @@ local POLLIN,           POLLOUT,           VNODE =
       lens.Poller.Read, lens.Poller.Write, lens.Poller.VNode
 
 local operations = {}
-local scheduleAt, removeFd, runThread, guiPoll
+local scheduleAt, finalizeThread, removeFd, runThread, guiPoll
 
 -- Create a new Scheduler object.
 function lib.new()
@@ -185,12 +185,7 @@ function runThread(self, thread)
         error(format("Invalid operation '%s'.", tostring(a)))
       end
     elseif status(thread.co) == 'dead' then
-      -- Coroutine function finished
-      -- Cleanup
-      if thread.fd then
-        removeFd(self, thread)
-      end
-      thread.co = nil
+      finalizeThread(self, thread)
     end
   else
     -- Error
@@ -204,10 +199,7 @@ function runThread(self, thread)
     if thread.restart then
       thread.co = create(thread.func)
     else
-      if thread.fd then
-        removeFd(self, thread)
-      end
-      thread.co = nil
+      finalizeThread(self, thread)
     end
   end
 end  
@@ -325,9 +317,11 @@ function operations.halt(self)
 end
 
 function operations.kill(self, thread, other)
-  if other.fd then
-    removeFd(self, other)
+  if not other then
+    other  = thread
+    thread = nil
   end
+
   local p = self
   local t = self.at_next
   -- Remove from at list
@@ -339,11 +333,24 @@ function operations.kill(self, thread, other)
     p = t
     t = t.at_next
   end
+
+  finalizeThread(self, other)
+
   -- continue after kill
   if thread then
     scheduleAt(self, nil, thread)
   end
 end
+
+function operations.join(self, thread, other)
+  local joins = other.joins
+  if not joins then
+    joins = {}
+    other.joins = joins
+  end
+  insert(joins, thread)
+end
+
 -- nodoc
 lib.killThread = operations.kill
 
@@ -425,5 +432,22 @@ function guiPoll(poller, wake_at)
   -- 'resume' callback on main thread when kevent returns.
   return yield(wake_at)
 end
+
+function finalizeThread(self, thread)
+  -- Coroutine function finished
+  -- Cleanup
+  if thread.fd then
+    removeFd(self, thread)
+  end
+  thread.co = nil
+  local joins = thread.joins
+  if joins then
+    thread.joins = nil
+    for _, t in ipairs(joins) do
+      scheduleAt(self, nil, t)
+    end
+  end
+end
+  
 
 return lib
