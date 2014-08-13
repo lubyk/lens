@@ -1,15 +1,6 @@
---[[------------------------------------------------------
-
-  lens bindings generator
-  ------------------------
-
-  This uses the 'dub' tool and Doxygen to generate the
-  bindings for mimas.
-
-  Input:  headers in 'include/lens'
-  Output: cpp files in 'src/bind'
-
---]]------------------------------------------------------
+--
+-- Update binding files for this project
+--
 local lub = require 'lub'
 local dub = require 'dub'
 

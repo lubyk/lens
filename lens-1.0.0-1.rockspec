@@ -7,25 +7,25 @@ source = {
 description = {
   summary = "Lubyk networking and scheduling.",
   detailed = [[
-    lens.Scheduler: core scheduling class.
+  lens.Scheduler: core scheduling class.
 
-    lens.Poller: fast poller with nanosecond precision.
+  lens.Poller: fast poller with nanosecond precision.
 
-    lens.Thread: threading class to use with scheduler.
+  lens.Thread: threading class to use with scheduler.
 
-    lens.Timer: precise non-drifting timer.
+  lens.Timer: precise non-drifting timer.
 
-    lens.Finalizer: run code on garbage collection.
+  lens.Finalizer: run code on garbage collection.
 
-    lens.Popen: pipe working with scheduler (non-blocking).
-    ]],
+  lens.Popen: pipe working with scheduler (non-blocking).
+  ]],
   homepage = "http://doc.lubyk.org/lens.html",
   license = "MIT"
 }
 
 dependencies = {
   "lua >= 5.1, < 5.3",
-  "lub >= 1.0.3, < 1.1",
+  "lub >= 1.0.3, < 2.0",
 }
 build = {
   type = 'builtin',
@@ -78,3 +78,4 @@ build = {
     },
   },
 }
+
