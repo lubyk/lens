@@ -12,7 +12,7 @@
 using namespace lens;
 
 /** lens::Socket::Socket(int socket_type)
- * include/lens/Socket.h:94
+ * include/lens/Socket.h:91
  */
 static int Socket_Socket(lua_State *L) {
   try {
@@ -29,7 +29,7 @@ static int Socket_Socket(lua_State *L) {
 }
 
 /** virtual lens::Socket::~Socket()
- * include/lens/Socket.h:108
+ * include/lens/Socket.h:105
  */
 static int Socket__Socket(lua_State *L) {
   try {
@@ -49,7 +49,7 @@ static int Socket__Socket(lua_State *L) {
 }
 
 /** void lens::Socket::close()
- * include/lens/Socket.h:112
+ * include/lens/Socket.h:109
  */
 static int Socket_close(lua_State *L) {
   try {
@@ -65,7 +65,7 @@ static int Socket_close(lua_State *L) {
 }
 
 /** int lens::Socket::bind(const char *localhost=NULL, int port=0)
- * include/lens/Socket.h:122
+ * include/lens/Socket.h:119
  */
 static int Socket_bind(lua_State *L) {
   try {
@@ -93,7 +93,7 @@ static int Socket_bind(lua_State *L) {
 }
 
 /** bool lens::Socket::connect(const char *host, int port)
- * include/lens/Socket.h:127
+ * include/lens/Socket.h:124
  */
 static int Socket_connect(lua_State *L) {
   try {
@@ -111,7 +111,7 @@ static int Socket_connect(lua_State *L) {
 }
 
 /** void lens::Socket::connectFinish()
- * include/lens/Socket.h:131
+ * include/lens/Socket.h:128
  */
 static int Socket_connectFinish(lua_State *L) {
   try {
@@ -127,7 +127,7 @@ static int Socket_connectFinish(lua_State *L) {
 }
 
 /** void lens::Socket::listen(int backlog=BACKLOG)
- * include/lens/Socket.h:136
+ * include/lens/Socket.h:133
  */
 static int Socket_listen(lua_State *L) {
   try {
@@ -150,7 +150,7 @@ static int Socket_listen(lua_State *L) {
 }
 
 /** LuaStackSize lens::Socket::accept(lua_State *L)
- * include/lens/Socket.h:141
+ * include/lens/Socket.h:138
  */
 static int Socket_accept(lua_State *L) {
   try {
@@ -164,73 +164,39 @@ static int Socket_accept(lua_State *L) {
   return dub::error(L);
 }
 
-/** void lens::Socket::setRecvTimeout(int timeout)
- * include/lens/Socket.h:143
+/** LuaStackSize lens::Socket::recvLine(lua_State *L)
+ * include/lens/Socket.h:144
  */
-static int Socket_setRecvTimeout(lua_State *L) {
+static int Socket_recvLine(lua_State *L) {
   try {
     Socket *self = *((Socket **)dub::checksdata(L, 1, "lens.Socket"));
-    int timeout = dub::checkint(L, 2);
-    self->setRecvTimeout(timeout);
-    return 0;
+    return self->recvLine(L);
   } catch (std::exception &e) {
-    lua_pushfstring(L, "setRecvTimeout: %s", e.what());
+    lua_pushfstring(L, "recvLine: %s", e.what());
   } catch (...) {
-    lua_pushfstring(L, "setRecvTimeout: Unknown exception");
+    lua_pushfstring(L, "recvLine: Unknown exception");
   }
   return dub::error(L);
 }
 
-/** void lens::Socket::setSendTimeout(int timeout)
- * include/lens/Socket.h:147
+/** LuaStackSize lens::Socket::recvBytes(int sz, lua_State *L)
+ * include/lens/Socket.h:150
  */
-static int Socket_setSendTimeout(lua_State *L) {
+static int Socket_recvBytes(lua_State *L) {
   try {
     Socket *self = *((Socket **)dub::checksdata(L, 1, "lens.Socket"));
-    int timeout = dub::checkint(L, 2);
-    self->setSendTimeout(timeout);
-    return 0;
+    int sz = dub::checkint(L, 2);
+    return self->recvBytes(sz, L);
   } catch (std::exception &e) {
-    lua_pushfstring(L, "setSendTimeout: %s", e.what());
+    lua_pushfstring(L, "recvBytes: %s", e.what());
   } catch (...) {
-    lua_pushfstring(L, "setSendTimeout: Unknown exception");
-  }
-  return dub::error(L);
-}
-
-/** void lens::Socket::setNonBlocking()
- * include/lens/Socket.h:151
- */
-static int Socket_setNonBlocking(lua_State *L) {
-  try {
-    Socket *self = *((Socket **)dub::checksdata(L, 1, "lens.Socket"));
-    self->setNonBlocking();
-    return 0;
-  } catch (std::exception &e) {
-    lua_pushfstring(L, "setNonBlocking: %s", e.what());
-  } catch (...) {
-    lua_pushfstring(L, "setNonBlocking: Unknown exception");
-  }
-  return dub::error(L);
-}
-
-/** LuaStackSize lens::Socket::recv(lua_State *L)
- * include/lens/Socket.h:165
- */
-static int Socket_recv(lua_State *L) {
-  try {
-    Socket *self = *((Socket **)dub::checksdata(L, 1, "lens.Socket"));
-    return self->recv(L);
-  } catch (std::exception &e) {
-    lua_pushfstring(L, "recv: %s", e.what());
-  } catch (...) {
-    lua_pushfstring(L, "recv: Unknown exception");
+    lua_pushfstring(L, "recvBytes: Unknown exception");
   }
   return dub::error(L);
 }
 
 /** int lens::Socket::send(lua_State *L)
- * include/lens/Socket.h:171
+ * include/lens/Socket.h:156
  */
 static int Socket_send(lua_State *L) {
   try {
@@ -246,7 +212,7 @@ static int Socket_send(lua_State *L) {
 }
 
 /** const char* lens::Socket::localHost() const
- * include/lens/Socket.h:175
+ * include/lens/Socket.h:160
  */
 static int Socket_localHost(lua_State *L) {
   try {
@@ -262,7 +228,7 @@ static int Socket_localHost(lua_State *L) {
 }
 
 /** int lens::Socket::localPort() const
- * include/lens/Socket.h:181
+ * include/lens/Socket.h:166
  */
 static int Socket_localPort(lua_State *L) {
   try {
@@ -278,7 +244,7 @@ static int Socket_localPort(lua_State *L) {
 }
 
 /** const char* lens::Socket::remoteHost() const
- * include/lens/Socket.h:187
+ * include/lens/Socket.h:172
  */
 static int Socket_remoteHost(lua_State *L) {
   try {
@@ -294,7 +260,7 @@ static int Socket_remoteHost(lua_State *L) {
 }
 
 /** int lens::Socket::remotePort() const
- * include/lens/Socket.h:193
+ * include/lens/Socket.h:178
  */
 static int Socket_remotePort(lua_State *L) {
   try {
@@ -309,24 +275,8 @@ static int Socket_remotePort(lua_State *L) {
   return dub::error(L);
 }
 
-/** int lens::Socket::port() const
- * include/lens/Socket.h:199
- */
-static int Socket_port(lua_State *L) {
-  try {
-    Socket *self = *((Socket **)dub::checksdata(L, 1, "lens.Socket"));
-    lua_pushnumber(L, self->port());
-    return 1;
-  } catch (std::exception &e) {
-    lua_pushfstring(L, "port: %s", e.what());
-  } catch (...) {
-    lua_pushfstring(L, "port: Unknown exception");
-  }
-  return dub::error(L);
-}
-
 /** int lens::Socket::fd() const
- * include/lens/Socket.h:205
+ * include/lens/Socket.h:184
  */
 static int Socket_fd(lua_State *L) {
   try {
@@ -337,21 +287,6 @@ static int Socket_fd(lua_State *L) {
     lua_pushfstring(L, "fd: %s", e.what());
   } catch (...) {
     lua_pushfstring(L, "fd: Unknown exception");
-  }
-  return dub::error(L);
-}
-
-/** LuaStackSize lens::Socket::recvAll(lua_State *L)
- * include/lens/Socket.h:211
- */
-static int Socket_recvAll(lua_State *L) {
-  try {
-    Socket *self = *((Socket **)dub::checksdata(L, 1, "lens.Socket"));
-    return self->recvAll(L);
-  } catch (std::exception &e) {
-    lua_pushfstring(L, "recvAll: %s", e.what());
-  } catch (...) {
-    lua_pushfstring(L, "recvAll: Unknown exception");
   }
   return dub::error(L);
 }
@@ -377,18 +312,14 @@ static const struct luaL_Reg Socket_member_methods[] = {
   { "connectFinish", Socket_connectFinish },
   { "listen"       , Socket_listen        },
   { "accept"       , Socket_accept        },
-  { "setRecvTimeout", Socket_setRecvTimeout },
-  { "setSendTimeout", Socket_setSendTimeout },
-  { "setNonBlocking", Socket_setNonBlocking },
-  { "recv"         , Socket_recv          },
+  { "recvLine"     , Socket_recvLine      },
+  { "recvBytes"    , Socket_recvBytes     },
   { "send"         , Socket_send          },
   { "localHost"    , Socket_localHost     },
   { "localPort"    , Socket_localPort     },
   { "remoteHost"   , Socket_remoteHost    },
   { "remotePort"   , Socket_remotePort    },
-  { "port"         , Socket_port          },
   { "fd"           , Socket_fd            },
-  { "recvAll"      , Socket_recvAll       },
   { "__tostring"   , Socket___tostring    },
   { "deleted"      , dub::isDeleted       },
   { NULL, NULL},

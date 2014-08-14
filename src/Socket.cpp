@@ -76,7 +76,7 @@ int lens::Socket::bind(const char *localhost, int port) {
     freeaddrinfo(res);
     throw dub::Exception("Could not create socket for %s:%i (%s).", local_host_.c_str(), port, strerror(errno));
   }
-  if (non_blocking_) setNonBlocking();
+  setNonBlocking();
 
   // bind to port
   if (::bind(socket_fd_, res->ai_addr, res->ai_addrlen)) {
@@ -100,11 +100,11 @@ bool lens::Socket::connect(const char *host, int port) {
     socket_fd_ = -1;
   }
 
+  remote_host_ = host;
+  remote_port_ = port;
+
   if (socket_type_ == UDP) {
     // store remote info but only connect on send
-    remote_host_ = host;
-    remote_port_ = port;
-
     socket_fd_ = socket(AF_INET, SOCK_DGRAM, 0);
 
     // bind any port
@@ -145,7 +145,7 @@ bool lens::Socket::connect(const char *host, int port) {
     freeaddrinfo(res);
     throw dub::Exception("Could not create socket for %s:%i (%s).", host, port, strerror(errno));
   }
-  if (non_blocking_) setNonBlocking();
+  setNonBlocking();
 
   // connect
   if (::connect(socket_fd_, res->ai_addr, res->ai_addrlen)) {
@@ -248,130 +248,6 @@ LuaStackSize lens::Socket::accept(lua_State *L) {
   return pushNewSocket(L, socket_type_, fd, local_host_.c_str(), remote_host, remote_port);
 }
 
-
-  /** Receive a message encoded by msgpack (blocks).
-   * For a server, this should typically be used inside the loop.
-   * We pass the lua_State to avoid mixing thread contexts.
-   */
-// ENABLE ONLY IF NEEDED (needs to be rewritten in Lua)
-//
-//   LuaStackSize lens::Socket::recvMsg(lua_State *L) {
-//     // printf("recvMsg len:%i, i:%i\n", buffer_length_, buffer_i_);
-//     // TODO: second param = timeout ?
-//     char *msg_buffer  = NULL;
-//     char *tmp_buffer  = NULL;
-//     size_t sz;
-// 
-//     // unlock while waiting
-// 
-//       // Receive buffer length
-//       char *sz_ptr = (char*)&sz;
-//       for(int i=0; i < SIZEOF_SIZE; ++i) {
-//         if (buffer_i_ >= buffer_length_) {
-//           // eaten all buffer, fetch more
-//           // ***********************************************
-//           // This is where we need our coroutine to do coroutine.yield('read', socket_fd_)
-//           // ***********************************************
-//           buffer_length_ = ::recv(socket_fd_, buffer_, SIZEOF_SIZE - i, 0);
-//           if (buffer_length_ == 0) {
-//             // connection closed
-//             return 0;
-//           } else if (buffer_length_ < 0) {
-//             buffer_length_ = 0;
-//             throw dub::Exception("Could not receive (%s).", strerror(errno));
-//           }
-//           buffer_i_ = 0;
-//         }
-//         sz_ptr[i] = *(buffer_ + buffer_i_);
-//         ++buffer_i_;
-//       }
-// 
-//       sz = ntohs(sz);
-//       // printf("Receiving %lu bytes...\n", sz);
-//       if (sz > SIZE_MAX) {
-//       throw dub::Exception("Invalid message size (%lu bytes).", sz);
-//     }
-// 
-//     char *recv_buffer = NULL;
-// 
-//     // available content in buffer
-//     size_t avail = buffer_length_ - buffer_i_;
-//     size_t done = 0;
-// 
-//     // allocate buffer if sz > MAX_BUFF_SIZE or we have stuff in buffer_
-//     if (sz <= avail) {
-//       // everything is in the internal buffer
-//       // printf("All in tmp buffer (%lu).\n", avail);
-//       msg_buffer = buffer_ + buffer_i_;
-//       done = sz;
-//       buffer_i_ += done;
-//     } else if (sz > MAX_BUFF_SIZE || avail) {
-//       // printf("Using tmp buffer (%lu).\n", avail);
-//       tmp_buffer = (char*)malloc(sz);
-//       if (!tmp_buffer) {
-//         throw dub::Exception("Could not allocate buffer (%lu bytes).", sz);
-//       }
-//       msg_buffer  = tmp_buffer;
-//       recv_buffer = msg_buffer + avail;
-// 
-//       if (avail) {
-//         done = avail;
-//         memcpy(tmp_buffer, buffer_ + buffer_i_, done);
-//         buffer_i_ = buffer_length_;
-//       }
-//     } else {
-//       // internal buffer empty
-//       msg_buffer  = buffer_;
-//       recv_buffer = buffer_;
-//     }
-// 
-// 
-//     while (done < sz) {
-//       int received = ::recv(socket_fd_, recv_buffer, sz - done, 0);
-//       if (received == 0) {
-//         if (tmp_buffer) free(tmp_buffer);
-//         return 0;
-//       } else if (received < 0) {
-//         if (tmp_buffer) free(tmp_buffer);
-//         throw dub::Exception("Could not receive (%s).", strerror(errno));
-//       }
-//       done += received;
-//     }
-// 
-//   int arg_size = msgpack_bin_to_lua(L, msg_buffer, sz);
-//   if (tmp_buffer) free(tmp_buffer);
-//   return arg_size;
-// }
-
-/** Receive a raw string (not encoded by msgpack).
- * This IO call blocks.
- * We pass the lua_State to avoid mixing thread contexts.
- */
-LuaStackSize lens::Socket::recv(lua_State *L) {
-  if (lua_isnumber(L, 3)) {
-    setRecvTimeout(lua_tonumber(L, 3));
-  }
-
-  if (lua_isnumber(L, 2)) {
-    // <self> <num_bytes> [<timeout>]
-    return recvBytes(L, lua_tonumber(L, 2));
-  } else if (lua_isstring(L, 2)) {
-    // <self> <mode> [<timeout>]
-    const char *mode = lua_tostring(L, 2);
-    if (mode[0] == '*' && mode[1] == 'a') {
-      return recvAll(L);
-    } else if (mode[0] == '*' && mode[1] == 'l') {
-      return recvLine(L);
-    } else {
-      throw dub::Exception("Bad mode to recv (should be '*a' or '*l' but found '%s')", mode);
-    }
-  } 
-  // receive a single line (not returning \r or \n).
-  return recvLine(L);
-
-  return 1;
-}
-
 /** Send raw bytes without encoding with msgpack.
  * param: string to send.
  */
@@ -383,29 +259,6 @@ int lens::Socket::send(lua_State *L) {
   // send raw bytes
   return sendBytes(data, size);
 }
-
-/** Send a message packed with msgpack.
- * Varying parameters.
- */
-// void lens::Socket::sendMsg(lua_State *L) {
-//   msgpack_sbuffer* buffer;
-//   msgpack_lua_to_bin(L, &buffer, 1);
-//   if (buffer->size > SIZE_MAX) {
-//     throw dub::Exception("Message too big to send in a single packet (%lu bytes).", buffer->size);
-//   }
-//   // printf("Sending %lu bytes...\n", buffer->size);
-//   size_t sz = htons(buffer->size);
-// 
-//   if (::send(socket_fd_, (void*)&sz, SIZEOF_SIZE, 0) == -1) {
-//     throw dub::Exception("Could not send message size (%s).", strerror(errno));
-//   }
-// 
-//   if (::send(socket_fd_, buffer->data, buffer->size, 0) == -1) {
-//     throw dub::Exception("Could not send message (%s).", strerror(errno));
-//   }
-//   free_msgpack_msg(NULL, buffer);
-// }
-
 
 int lens::Socket::get_port(int fd) {
   // get bound port
@@ -423,7 +276,6 @@ int lens::Socket::get_port(int fd) {
   }
 }
 
-// FIXME: who uses this ?? osc::Socket ?? needs testing/fixing.
 int lens::Socket::recvLine(lua_State *L) {
   luaL_Buffer buffer;
   luaL_buffinit(L, &buffer);
@@ -465,7 +317,7 @@ int lens::Socket::recvLine(lua_State *L) {
   return 0;
 }
 
-int lens::Socket::recvBytes(lua_State *L, int sz) {
+int lens::Socket::recvBytes(int sz, lua_State *L) {
   luaL_Buffer buffer;
 
   if (buffer_i_ < buffer_length_) {
@@ -483,94 +335,36 @@ int lens::Socket::recvBytes(lua_State *L, int sz) {
     luaL_buffinit(L, &buffer);
   }
 
-  while (sz) {
-    // read more data
+  while (sz > 0) {
+    // continue receiving data until we have what we need, or we encounter EAGAIN.
+
     // we prefer not reading too much so that we might simplify read operation
     // with a single pushlstring
     buffer_length_ = ::recv(socket_fd_, buffer_, sz < MAX_BUFF_SIZE ? sz : MAX_BUFF_SIZE, 0);
     if (buffer_length_ == 0) {
       // connection closed
-      // abort
       return 0;
     } else if (buffer_length_ < 0) {
       buffer_length_ = 0;
-      throw dub::Exception("Could not receive (%s).", strerror(errno));
-    }
-    
-    luaL_addlstring(&buffer, buffer_, buffer_length_);
+      if (errno == EAGAIN) {
+        luaL_pushresult(&buffer);
+        // indicate more to come
+        lua_pushnumber(L, sz);
+        return 2;
+      } else {
+        throw dub::Exception("Could not receive (%s).", strerror(errno));
+      }
+    } else {
+      // found buffer_length_ bytes
+      luaL_addlstring(&buffer, buffer_, buffer_length_);
+      sz -= buffer_length_;
 
-    sz -= buffer_length_;
-    buffer_i_ = buffer_length_;
-  }                             
-  
+      // mark buffer as empty
+      buffer_i_ = buffer_length_;
+    }
+  }
+
+  // found all data
   luaL_pushresult(&buffer);
   return 1;
 }
-
-// Return true for EAGAIN, false for end of connection, data if found.
-LuaStackSize lens::Socket::recvAll(lua_State *L) {
-  if (socket_type_ == lens::Socket::UDP) {
-
-    struct sockaddr_in fromAddr;
-    socklen_t fromAddrLen = sizeof(fromAddr);
-
-    // TODO: store latest fromAddr.
-    buffer_length_ = recvfrom(socket_fd_, buffer_, MAX_BUFF_SIZE, 0,
-		 (struct sockaddr *) &fromAddr, &fromAddrLen);
-    if (buffer_length_ < 0) return 0;
-
-    // Single packet: do not wait for disconnection.
-    lua_pushlstring(L, buffer_, buffer_length_);
-    return 1;
-  } else {
-    luaL_Buffer buffer;
-    luaL_buffinit(L, &buffer);
-
-    bool has_data = false;
-    if (buffer_i_ < buffer_length_) {
-      has_data = true;
-      luaL_addlstring(&buffer, buffer_ + buffer_i_, buffer_length_ - buffer_i_);
-    }
-
-    while (true) {
-      // read more data
-      buffer_length_ = ::recv(socket_fd_, buffer_, MAX_BUFF_SIZE, 0);
-      if (buffer_length_ == 0) {
-        // connection closed
-        // done
-        lua_pushboolean(L, false);
-        return 0;
-      } else if (buffer_length_ < 0) {
-        buffer_length_ = 0;
-        if (errno == EAGAIN) {
-          break;
-        } else {
-          throw dub::Exception("Could not receive (%s).", strerror(errno));
-        }
-      }
-      has_data = true;
-      luaL_addlstring(&buffer, buffer_, buffer_length_);
-    }                             
-    
-    if (has_data) {
-      luaL_pushresult(&buffer);
-    } else {
-      // EAGAIN without any data
-      lua_pushboolean(L, true);
-    }
-    return 1;
-  }
-}
-
-void lens::Socket::setTimeout(int timeout, int opt_name) {
-  if (socket_fd_ == -1) {
-    throw dub::Exception("Cannot set timeout before bind or connect.");
-  }
-  struct timeval tv;
-  tv.tv_sec = timeout/1000;
-  tv.tv_usec = (timeout % 1000) * 1000;
-  if (setsockopt(socket_fd_, SOL_SOCKET, opt_name, (char*)&tv, sizeof tv) == -1) {
-    throw dub::Exception("Could not set timeout (%s).", strerror(errno));
-  }
-}
-

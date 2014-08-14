@@ -54,6 +54,8 @@ namespace lens {
 
 /** Listen for incoming messages on a given port.
  *
+ * When an internal function returns EAGAIN, the method returns "partial_data, true".
+ *
  * @dub push: dub_pushobject
  *      string_format:'%%s:%%d --> %%s:%%d'
  *      string_args:'self->localHost(), self->localPort(), self->remoteHost(), self->remotePort()'
@@ -79,11 +81,6 @@ class Socket : public dub::Thread {
   /** Buffer that contains received data not yet used by Lua.
    */
   char buffer_[MAX_BUFF_SIZE];
-
-  /** Non-blocking flag when setNonBlocking is called before creating the
-   * socket.
-   */
-  bool non_blocking_;
 public:
 
   enum SocketType {
@@ -102,7 +99,7 @@ public:
       , remote_port_(-1)
       , buffer_length_(0)
       , buffer_i_(0)
-      , non_blocking_(false) {
+  {
   }
 
   virtual ~Socket() {
@@ -140,29 +137,17 @@ public:
    */
   LuaStackSize accept(lua_State *L);
 
-  void setRecvTimeout(int timeout) {
-    setTimeout(timeout, SO_RCVTIMEO);
-  }
-    
-  void setSendTimeout(int timeout) {
-    setTimeout(timeout, SO_SNDTIMEO);
-  }
-
-  void setNonBlocking() {
-    non_blocking_ = true;
-    if (socket_fd_ != -1) {
-      int x;
-      x = fcntl(socket_fd_, F_GETFL, 0);
-      if (-1 == fcntl(socket_fd_, F_SETFL, x | O_NONBLOCK)) {
-        throw dub::Exception("Could not set non-blocking (%s).", strerror(errno));
-      }
-    }
-  }
-  
-  /** Receive a raw string.
-   * This IO call blocks.
+  /** Receive a line.
+   *
+   * Returns 'data, eagain'.
    */
-  LuaStackSize recv(lua_State *L);
+  LuaStackSize recvLine(lua_State *L);
+
+  /** Receive sz bytes.
+   *
+   * Returns 'data, eagain, sz_left'.
+   */
+  LuaStackSize recvBytes(int sz, lua_State *L);
 
   /** Send raw bytes.
    * param: string to send.
@@ -194,24 +179,21 @@ public:
     return remote_port_;
   }
 
-  /** Same as localPort.
-   */
-  int port() const {
-    return local_port_;
-  }
-
   /** File descriptor used by scheduler.
    */
   int fd() const {
     return socket_fd_;
   }
 
-  /** This is the same as recv("*a").
-   */
-  LuaStackSize recvAll(lua_State *L);
-
 protected:
-
+  void setNonBlocking() {
+    int x;
+    x = fcntl(socket_fd_, F_GETFL, 0);
+    if (-1 == fcntl(socket_fd_, F_SETFL, x | O_NONBLOCK)) {
+      throw dub::Exception("Could not set non-blocking (%s).", strerror(errno));
+    }
+  }
+  
   /** Send raw bytes from C++.
    */
   inline int sendBytes(const char *bytes, size_t sz) {
@@ -264,22 +246,16 @@ protected:
       , remote_port_(remote_port)
       , buffer_length_(0)
       , buffer_i_(0)
-      , non_blocking_(false) {
-      }
+  {
+  }
 
 private:
   static int get_port(int fd);
 
-  int recvLine(lua_State *L);
-
-  int recvBytes(lua_State *L, int sz);
-
-
-  void setTimeout(int timeout, int opt_name);
-
   virtual int pushNewSocket(lua_State *L, int type, int fd, const char *local_host, const char *remote_host, int remote_port) {
     Socket *new_socket = new Socket(type, fd, local_host, remote_host, remote_port);
 
+    new_socket->setNonBlocking();
     new_socket->dub_pushobject(L, new_socket, "lens.Socket", true);
     return 1;
   }

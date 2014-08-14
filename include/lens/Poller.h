@@ -578,9 +578,10 @@ private:
   void setKEvent(Pollitem *item) {
     int res = ::kevent(kqueue_, item, 1, NULL, 0, NULL);
     if (res < 0) {
-      if (item->flags == EV_DELETE && errno == EAGAIN) {
-        printf("EAGAIN with EV_DELETE..\n");
+      if (item->flags == EV_DELETE && (errno == EAGAIN || errno == EBADF)) {
         // FIXME: is it OK to ignore this error ?
+        // How to avoid removing closed fd ?
+        printf("EAGAIN or EBADF with EV_DELETE..\n");
       } else {
         throw dub::Exception("An error occured during set kevent (%s).", strerror(errno));
       }
