@@ -203,6 +203,8 @@ protected:
   /** Send raw bytes from C++.
    */
   inline int sendBytes(const char *bytes, size_t sz) {
+    int sent;
+
     if (socket_type_ == UDP) {
       struct addrinfo hints, *res;
 
@@ -213,7 +215,7 @@ protected:
       // UDP
       hints.ai_socktype = SOCK_DGRAM;
 
-      // TODO: performance save port string.
+
       char port_str[10];
       snprintf(port_str, 10, "%i", remote_port_);
 
@@ -222,21 +224,22 @@ protected:
         throw dub::Exception("Could not getaddrinfo for %s:%i (%s).", remote_host_.c_str(), remote_port_, gai_strerror(status));
       }
 
+      // FIXME: performance save addrinfo !.
 
-      int sent = sendto(socket_fd_, bytes, sz, 0, res->ai_addr, res->ai_addrlen);
+      sent = sendto(socket_fd_, bytes, sz, 0, res->ai_addr, res->ai_addrlen);
       freeaddrinfo(res);
-      return sent;
     } else {
-      int sent = ::send(socket_fd_, bytes, sz, 0);
-      if (sent == -1) {
-        if (errno == EAGAIN) {
-          sent = 0;
-        } else {
-          throw dub::Exception("Could not send message (%s).", strerror(errno));
-        };
-      }
-      return sent;
+      sent = ::send(socket_fd_, bytes, sz, 0);
     }
+
+    if (sent == -1) {
+      if (errno == EAGAIN) {
+        return -1;
+      } else {
+        throw dub::Exception("Could not send message (%s).", strerror(errno));
+      };
+    }
+    return sent;
   }
 
 

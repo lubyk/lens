@@ -9,8 +9,8 @@
 local core  = require 'lens.core'
 local lib   = core.File
 
-local     OK,     Wait, None,     new =
-      lib.OK, lib.Wait, lib.None, lib.new
+local     OK,     Wait,     new =
+      lib.OK, lib.Wait, lib.new
 
 local           yield,     readLine,     write,        len,        sub =
       coroutine.yield, lib.readLine, lib.write, string.len, string.sub

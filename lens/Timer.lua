@@ -41,9 +41,7 @@ function lib.new(interval, callback)
     interval = interval,
   }
   self.cb = function() run(self) end
-  if callback then
-    self.timeout = callback
-  end
+  self.timeout = callback or function() end
   self.sched = yield('sched')
   print('Timer.new', self.sched.type)
   return setmetatable(self, lib)

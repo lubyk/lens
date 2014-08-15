@@ -133,12 +133,14 @@ function lib:send(data)
   local buffer = data
   while true do
     local sent = send(self.super, data)
-    if sent == slen(data) then
+    if sent < 0 then
+      -- eagain
+      yield('write', self.sock_fd)
+    elseif sent == slen(data) then
       break
     else
       data = ssub(data, sent + 1)
     end
-    yield('write', self.sock_fd)
   end
 end
 

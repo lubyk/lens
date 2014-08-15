@@ -255,7 +255,7 @@ LuaStackSize lens::Socket::accept(lua_State *L) {
   return pushNewSocket(L, socket_type_, fd, local_host_.c_str(), remote_host, remote_port);
 }
 
-/** Send raw bytes without encoding with msgpack.
+/** Send raw bytes.
  * param: string to send.
  */
 int lens::Socket::send(lua_State *L) {
