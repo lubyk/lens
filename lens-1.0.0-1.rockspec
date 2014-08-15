@@ -44,18 +44,18 @@ build = {
     -- C module
     ['lens.core'      ] = {
       sources = {
-        'src/file.cpp',
-        'src/lens.cpp',
-        'src/poller.cpp',
-        'src/popen.cpp',
+        'src/Socket.cpp',
         'src/bind/dub/dub.cpp',
-        'src/bind/dub/dub.cpp~',
-        'src/bind/lens_core.cpp',
         'src/bind/lens_File.cpp',
         'src/bind/lens_Finalizer.cpp',
         'src/bind/lens_Poller.cpp',
         'src/bind/lens_Popen.cpp',
         'src/bind/lens_Socket.cpp',
+        'src/bind/lens_core.cpp',
+        'src/file.cpp',
+        'src/lens.cpp',
+        'src/poller.cpp',
+        'src/popen.cpp',
       },
       incdirs   = {'include', 'src/bind'},
       libraries = {'stdc++'},
@@ -65,6 +65,8 @@ build = {
     linux = {
       modules = {
         ['lens.core'] = {
+          sources = {
+          },
           libraries = {'stdc++', 'rt'},
         },
       },

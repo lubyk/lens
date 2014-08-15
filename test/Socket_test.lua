@@ -175,5 +175,28 @@ function should.recvBytes(t)
   end)
 end
 
+function should.sendRecvUDP(t)
+  run(function()
+    t.server = Socket(Socket.UDP)
+    t.server:bind('*', 0)
+    t.port = t.server.port
+    -- run server in new thread
+    t.thread = lens.Thread(function()
+      -- will start as soon as we yield
+      t.received1 = t.server:recvMessage()
+      t.received2 = t.server:recvMessage()
+    end)
+    t.client = Socket(Socket.UDP)
+    t.client:connect('127.0.0.1', t.port)
+    -- 'send' does not yield
+    t.client:send('one')
+    t.client:send('two')
+    -- The server thread finally has some time to run
+    t.thread:join()
+    -- should give us control back on 'accept'
+    assertValueEqual('one', t.received1)
+    assertValueEqual('two', t.received2)
+  end)
+end
 
 should:test()

@@ -195,8 +195,23 @@ static int Socket_recvBytes(lua_State *L) {
   return dub::error(L);
 }
 
-/** int lens::Socket::send(lua_State *L)
+/** LuaStackSize lens::Socket::recvMessage(lua_State *L)
  * include/lens/Socket.h:156
+ */
+static int Socket_recvMessage(lua_State *L) {
+  try {
+    Socket *self = *((Socket **)dub::checksdata(L, 1, "lens.Socket"));
+    return self->recvMessage(L);
+  } catch (std::exception &e) {
+    lua_pushfstring(L, "recvMessage: %s", e.what());
+  } catch (...) {
+    lua_pushfstring(L, "recvMessage: Unknown exception");
+  }
+  return dub::error(L);
+}
+
+/** int lens::Socket::send(lua_State *L)
+ * include/lens/Socket.h:162
  */
 static int Socket_send(lua_State *L) {
   try {
@@ -212,7 +227,7 @@ static int Socket_send(lua_State *L) {
 }
 
 /** const char* lens::Socket::localHost() const
- * include/lens/Socket.h:160
+ * include/lens/Socket.h:166
  */
 static int Socket_localHost(lua_State *L) {
   try {
@@ -228,7 +243,7 @@ static int Socket_localHost(lua_State *L) {
 }
 
 /** int lens::Socket::localPort() const
- * include/lens/Socket.h:166
+ * include/lens/Socket.h:172
  */
 static int Socket_localPort(lua_State *L) {
   try {
@@ -244,7 +259,7 @@ static int Socket_localPort(lua_State *L) {
 }
 
 /** const char* lens::Socket::remoteHost() const
- * include/lens/Socket.h:172
+ * include/lens/Socket.h:178
  */
 static int Socket_remoteHost(lua_State *L) {
   try {
@@ -260,7 +275,7 @@ static int Socket_remoteHost(lua_State *L) {
 }
 
 /** int lens::Socket::remotePort() const
- * include/lens/Socket.h:178
+ * include/lens/Socket.h:184
  */
 static int Socket_remotePort(lua_State *L) {
   try {
@@ -276,7 +291,7 @@ static int Socket_remotePort(lua_State *L) {
 }
 
 /** int lens::Socket::fd() const
- * include/lens/Socket.h:184
+ * include/lens/Socket.h:190
  */
 static int Socket_fd(lua_State *L) {
   try {
@@ -314,6 +329,7 @@ static const struct luaL_Reg Socket_member_methods[] = {
   { "accept"       , Socket_accept        },
   { "recvLine"     , Socket_recvLine      },
   { "recvBytes"    , Socket_recvBytes     },
+  { "recvMessage"  , Socket_recvMessage   },
   { "send"         , Socket_send          },
   { "localHost"    , Socket_localHost     },
   { "localPort"    , Socket_localPort     },

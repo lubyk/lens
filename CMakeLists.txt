@@ -55,8 +55,7 @@ set(core "${MODULE_NAME}_core")
 
 include_directories(include src/bind)
 
-file(GLOB CORE_SOURCES src/*.c src/bind/dub/*.cpp src/bind/*.cpp src/*.cpp
-  src/${PLAT}/*.cpp src/${PLAT}/*.mm)
+file(GLOB CORE_SOURCES src/*.c src/*.cpp src/bind/dub/*.cpp src/bind/*.cpp src/${PLAT}/*.cpp src/${PLAT}/*.mm)
 
 add_library(${core} MODULE ${CORE_SOURCES})
 if(LINK_LIBS)

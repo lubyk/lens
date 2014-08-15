@@ -195,6 +195,10 @@ void lens::Socket::connectFinish() {
 /** Start listening for incoming connections.
  */
 void lens::Socket::listen(int backlog) {
+  if (socket_type_ == lens::Socket::UDP) {
+    throw dub::Exception("not supported by UDP sockets.");
+  }
+  
   if (local_port_ == -1)
     throw dub::Exception("Listen called before bind.");
 
@@ -207,6 +211,9 @@ void lens::Socket::listen(int backlog) {
  * @return a new lens.Socket connected to the remote end.
  */
 LuaStackSize lens::Socket::accept(lua_State *L) {
+  if (socket_type_ == lens::Socket::UDP) {
+    throw dub::Exception("not supported by UDP sockets.");
+  }
   // <self>
   lua_pop(L, 1);
 
@@ -368,3 +375,40 @@ int lens::Socket::recvBytes(int sz, lua_State *L) {
   luaL_pushresult(&buffer);
   return 1;
 }
+
+LuaStackSize lens::Socket::recvMessage(lua_State *L) {
+  if (socket_type_ != lens::Socket::UDP) {
+    throw dub::Exception("recvMessage only works with UDP sockets.");
+  }
+
+  struct sockaddr_in fromAddr;
+  socklen_t fromAddrLen = sizeof(fromAddr);
+
+  // TODO: store latest fromAddr.
+  buffer_length_ = recvfrom(socket_fd_,
+                            buffer_, MAX_BUFF_SIZE, 0,
+                            (struct sockaddr *) &fromAddr, &fromAddrLen);
+
+  if (buffer_length_ == 0) {
+    // connection closed
+    return 0;
+  } else if (buffer_length_ < 0) {
+    buffer_length_ = 0;
+    if (errno == EAGAIN) {
+      lua_pushnil(L);
+      lua_pushboolean(L, true);
+      // <nil>, eagain
+      return 2;
+    } else {
+      throw dub::Exception("Could not receive (%s).", strerror(errno));
+    }
+  } else {
+    // found buffer_length_ bytes
+    lua_pushlstring(L, buffer_, buffer_length_);
+
+    // mark buffer as empty
+    buffer_i_ = buffer_length_;
+    return 1;
+  }
+}
+

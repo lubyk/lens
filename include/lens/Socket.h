@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the LUBYK project (http://lubyk.org)
-   Copyright (c) 2007-2011 by Gaspard Bucher (http://teti.ch).
+   Copyright (c) 2007-2014 by Gaspard Bucher (http://teti.ch).
 
   ------------------------------------------------------------------------------
 
@@ -148,6 +148,12 @@ public:
    * Returns 'data, eagain, sz_left'.
    */
   LuaStackSize recvBytes(int sz, lua_State *L);
+
+  /** Receive a message (UDP only).
+   *
+   * Returns 'data, eagain'.
+   */
+  LuaStackSize recvMessage(lua_State *L);
 
   /** Send raw bytes.
    * param: string to send.

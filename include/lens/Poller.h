@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the LUBYK project (http://lubyk.org)
-   Copyright (c) 2007-2011 by Gaspard Bucher (http://teti.ch).
+   Copyright (c) 2007-2014 by Gaspard Bucher (http://teti.ch).
 
   ------------------------------------------------------------------------------
 

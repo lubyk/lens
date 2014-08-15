@@ -14,10 +14,13 @@ local new  = lib.new
 local           yield,       slen,       ssub = 
       coroutine.yield, string.len, string.sub
 
--- Rewrite new
-function lib.new(func)
-  local self = new(lib.TCP)
-  self.clients = {}
+function lib.new(sock_type, func)
+  if type(sock_type) == 'function' then
+    func = sock_type
+    sock_type = lib.TCP
+  end
+  local self = new(sock_type or lib.TCP)
+
   if func then
     self.thread = lens.Thread(function()
       func(self)
@@ -45,7 +48,30 @@ function lib:connect(...)
   end
 end
 
+local recvMessage = lib.recvMessage
+-- Receive all there is to receive. This method yields if the data is not yet
+-- available.
+function lib:recvMessage()
+  local super  = self.super
+
+  while true do
+    local data, eagain = recvMessage(super)
+    if eagain then
+      -- EAGAIN
+      -- no data
+    elseif not data then
+      -- closed
+      error('Connection closed while reading.')
+    else
+      return data
+    end
+    yield('read', self.sock_fd)
+  end
+end
+
 local recvBytes = lib.recvBytes
+-- Receive `len` count of bytes. This method yields if the data is not yet
+-- available.
 function lib:recvBytes(len)
   local super  = self.super
   local buffer
@@ -127,12 +153,8 @@ function lib:accept(func)
   cli.sock_fd = cli:fd()
   if func then
     -- start new thread
-    -- protect from GC
-    self.clients[cli.sock_fd] = cli
     cli.thread = lens.Thread(function()
       func(cli)
-      -- forget about the client
-      self.clients[cli.sock_fd] = nil
     end)
   end
   return cli
@@ -147,6 +169,8 @@ end
 function lib:join()
   if self.thread then
     self.thread:join()
+  else
+    error('no thread running. Cannot join.')
   end
 end
 

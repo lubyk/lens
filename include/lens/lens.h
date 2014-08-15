@@ -2,7 +2,7 @@
   ==============================================================================
 
    This file is part of the LUBYK project (http://lubyk.org)
-   Copyright (c) 2007-2011 by Gaspard Bucher (http://teti.ch).
+   Copyright (c) 2007-2014 by Gaspard Bucher (http://teti.ch).
 
   ------------------------------------------------------------------------------
 
@@ -26,8 +26,8 @@
 
   ==============================================================================
 */
-#ifndef LUBYK_INCLUDE_LENS_LUB_H_
-#define LUBYK_INCLUDE_LENS_LUB_H_
+#ifndef LUBYK_INCLUDE_LENS_LENS_H_
+#define LUBYK_INCLUDE_LENS_LENS_H_
 
 #include "dub/dub.h"
 
@@ -116,4 +116,4 @@ namespace lens {
   }
 } // lens
 
-#endif // LUBYK_INCLUDE_LENS_LUB_H_
+#endif // LUBYK_INCLUDE_LENS_LENS_H_
