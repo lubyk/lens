@@ -70,11 +70,15 @@ class File {
   
 public:
   enum Mode {
-    None   = 0,
+    None   = -1,
     Read   = O_RDONLY,
     Write  = O_WRONLY,
     Append = O_APPEND,
+#ifdef O_EVTONLY
     Events = O_EVTONLY,
+#else
+    Events = 32768,
+#endif
   };
 
   
