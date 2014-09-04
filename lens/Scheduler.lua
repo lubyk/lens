@@ -23,6 +23,7 @@ local scheduleAt, finalizeThread, removeFd, runThread, guiPoll
 
 -- Create a new Scheduler object.
 function lib.new()
+  print("NEW Scheduler")
   local self = {
     -- Points to the next thread to run
     at_next  = nil,

@@ -8,6 +8,7 @@
 
 --]]------------------------------------------------------
 local lub     = require 'lub'
+local lens    = require 'lens'
 local lib     = lub.class 'lens.Thread'
 local assert, setmetatable, yield,           create,           running   = 
       assert, setmetatable, coroutine.yield, coroutine.create, coroutine.running
@@ -31,16 +32,23 @@ lib.make = make
 -- Create a new Thread object and insert it inside the
 -- currently running scheduler's event queue. The thread is retained in the
 -- scheduler as long as it is alive (function has not reached the end). If
--- `sched` is provided, this scheduler will be used instead of using yield.
+-- `sched` is provided, this scheduler will be used instead of using yield. If
+-- the yield call fails due to a C-call boundary, the default #lens.sched
+-- scheduler will be used.
 function lib.new(func, at, sched)
-  if not running() then
-    error('Cannot create thread outside of running scheduler.')
-  end
   local self = make(func, at)
   if sched then
     sched:createThread(self)
+  elseif running() then
+    local ok, err = pcall(function()
+      yield('create', self)
+    end)
+    if not ok then
+      -- Trying to yield across c boundary. Using default scheduler.
+      lens.sched():createThread(self)
+    end
   else
-    yield('create', self)
+    lens.sched():createThread(self)
   end
   return self
 end

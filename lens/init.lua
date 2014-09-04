@@ -90,8 +90,8 @@ lib.BUILD = {
 function lib.run(func)
   if not running then
     running = true
-    lib.Scheduler():run(func)
-    -- Make sure not code is executed below 'lens.run'
+    lib.sched():run(func)
+    -- Make sure no code is executed below 'lens.run'
     os.exit(0)
   end
 end
@@ -164,6 +164,38 @@ lib.elapsed = core.elapsed
 -- Initialize library.
 core.init()
 
+-- # Helpers
+
+local classes = {}
+
+-- This is like lub.class but with class reloading support. Should only be used
+-- during development. If `skip_lub` is true, do not call lub.class and alter
+-- table setup (this is needed when wrapping class objects as library items).
+function lib.class(name, tbl, skip_lub)
+  if classes[name] then return classes[name] end
+  local class
+  if skip_lub then
+    class = tbl
+  else
+    class = lub.class(name, tbl)
+  end
+  classes[name] = class
+  -- Install file watch
+  lib.FileWatch(lub.path('&', 3))
+  
+  return class
+end
+
+local sched
+
+-- Return default scheduler (the one used in lens.run and by lens.FileWatch or
+-- lens.Thread when called without a coroutine running).
+function lib.sched()
+  if not sched then
+    sched = lib.Scheduler()
+  end
+  return sched
+end
 
 -- # Classes
 
