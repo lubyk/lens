@@ -35,7 +35,12 @@
 // Maximum return event count
 #define MAX_REVENT_COUNT 20
 // Use kevent
+
+#ifdef __APPLE__
+// Only works on mac os X for now. :-(
 #define LUBYK_POLLER_KEVENT
+#endif
+
 #define DEBUG 0
 
 #define debug_print(fmt, ...) \
@@ -49,6 +54,7 @@
 #include <time.h>   // time()
 #include <assert.h> // assert()
 #include <signal.h> // signal(), SIG_DFL, ...
+#include <stdint.h> // intptr_t
 
 
 
@@ -186,23 +192,28 @@ public:
       event_count_ = ::kevent(kqueue_, NULL, 0, events_data_, MAX_REVENT_COUNT, NULL);
     }
     debug_print("poll events:%i\n", event_count_);
-#else
-    // poll expects milliseconds
-    // negative timeout == wait forever
-    event_count_ = ::poll(pollitems_, used_count_, timeout * 1000);
-#endif
     if (event_count_ < 0 || events_data_[0].flags == EV_ERROR) {
       // error or interruption
       event_count_ = 0;
       if (!interrupted_) {
-#ifdef LUBYK_POLLER_KEVENT
         throw dub::Exception("An error occured during kevent (%s)", strerror(errno));
-#else
-        throw dub::Exception("An error occured during poll (%s)", strerror(errno));
-#endif
       } else {
         return false;
       }
+#else
+    // poll expects milliseconds
+    // negative timeout == wait forever
+    // FIXME: replace with ::epoll on linux
+    event_count_ = ::poll(pollitems_, used_count_, timeout * 1000);
+    if (event_count_ < 0) {
+      // error or interruption
+      event_count_ = 0;
+      if (!interrupted_) {
+        throw dub::Exception("An error occured during poll (%s)", strerror(errno));
+      } else {
+        return false;
+      }
+#endif
     } else if (event_count_ == 0) {
       // timed out
       // remaining time to sleep in seconds
@@ -348,13 +359,20 @@ public:
     assert(idx < pollitems_size_ && idx >= 0);
     Pollitem *item = pollitems_ + idx_to_pos_[idx];
     int fd     = -1;
-    int fflags = 0;
     int top    = lua_gettop(L);
+#ifdef LUBYK_POLLER_KEVENT
+    int fflags = 0;
+#endif
     // <self> <idx> <filter> <new_fd> (<flags>)
     if (top > 3) {
       fd = dub::checkint(L, 4);
       if (top > 4) {
+#ifdef LUBYK_POLLER_KEVENT
         fflags = dub::checkint(L, 5);
+#else
+        // FIXME: Support file events on linux.
+        throw dub::Exception("File Watch not supported on this platform.");
+#endif
       }
     }
 #ifdef LUBYK_POLLER_KEVENT
@@ -386,9 +404,9 @@ public:
       default:
         throw dub::Exception("Invalid filter value %i.", filter);
     }
+    // change kevent
     setKEvent(item);
 #else
-    // change kevent
     item->events = filter;
     if (fd != -1) {
       // changed fd
@@ -546,6 +564,13 @@ private:
     setKEvent(item);
 #else
     item->fd = fd;
+    int events = 0;
+    if (filter & Read) {
+      events += POLLIN;
+    }
+    if (filter & Write) {
+      events += POLLOUT;
+    }
     item->events = events;
 #endif
     return idx;

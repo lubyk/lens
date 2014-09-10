@@ -5,3 +5,4 @@
   * Methods: elapsed.
   * Using lut.Builder to generated build files.
   * Migrated lens.Socket to new scheduler.
+  * Builds on linux but without FileWatch.

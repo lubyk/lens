@@ -34,6 +34,7 @@
 #include <unistd.h> // close
 #include <fcntl.h>  // fcntl
 #include <errno.h>  // errno
+#include <sys/wait.h> // waitpid
 
 #define MAX_BUFF_SIZE 8196
 

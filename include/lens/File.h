@@ -35,6 +35,7 @@
 
 #include <sys/fcntl.h> // O_READ
 #include <errno.h>     // errno
+#include <unistd.h>    // close
 
 // 8 Ko
 // Maybe we could pass an argument to make this size smaller/bigger
