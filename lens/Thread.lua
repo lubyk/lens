@@ -6,6 +6,22 @@
 
   As long as a thread is scheduled to run (active loop, listening for, it will be kept in memory.
 
+
+  ## Error handling
+
+  When an error occurs in a thread, the related coroutine dies. If the thread has a `restart` function
+  set, this function is called with the thread's time reference and the scheduler. Here is the example used
+  to restart the Timer thread in case of errors in the timeout function:
+
+    local restart_func
+    restart_func = function(at, sched)
+      self.thread = Thread(self.cb, at + self.interval, sched)
+      self.thread.restart = restart_func
+    end
+    self.thread.restart = restart_func
+
+  Error handling can be personalized by the thread by setting an `error` function.
+
 --]]------------------------------------------------------
 local lub     = require 'lub'
 local lens    = require 'lens'

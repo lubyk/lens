@@ -40,10 +40,12 @@ function lib.new(interval, callback)
   local self = {
     interval = interval,
   }
+  setmetatable(self, lib)
   self.cb = function() run(self) end
   self.timeout = callback or function() end
   self.sched = yield('sched')
-  return setmetatable(self, lib)
+  self:start()
+  return self
 end
 
 -- # Start, stop, phase
@@ -65,7 +67,15 @@ function lib:start(start_in_seconds)
   else
     self.thread = Thread(self.cb, start_in_seconds + elapsed(), self.sched)
   end
+
+  local restart_func
+  restart_func = function(at, sched)
+    self.thread = Thread(self.cb, at + self.interval, sched)
+    self.thread.restart = restart_func
+  end
+  self.thread.restart = restart_func
 end
+
 
 -- Start timer with a precise starting time. This can be used to set precision 
 -- phase between timers.

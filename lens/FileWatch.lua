@@ -63,8 +63,12 @@ end
 function defaultCallback(self)
   -- We cannot call plain `dofile` because of yield across metamethod/C-call
   -- boundary error.
-  local func = loadfile(self.path)
-  func()
+  local func, err = loadfile(self.path)
+  if not func then
+    print(err)
+  else
+    func()
+  end
 end
 
 return lib

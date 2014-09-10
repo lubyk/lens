@@ -12,8 +12,8 @@ local lib     = lub.class 'lens.Scheduler'
 local setmetatable, create,           resume,           yield,           status           =
       setmetatable, coroutine.create, coroutine.resume, coroutine.yield, coroutine.status
       
-local format,        insert,       elapsed      =
-      string.format, table.insert, lens.elapsed
+local format,        insert,       elapsed,      print, type =
+      string.format, table.insert, lens.elapsed, print, type
       
 local POLLIN,           POLLOUT,           VNODE =
       lens.Poller.Read, lens.Poller.Write, lens.Poller.VNode
@@ -23,7 +23,6 @@ local scheduleAt, finalizeThread, removeFd, runThread, guiPoll
 
 -- Create a new Scheduler object.
 function lib.new()
-  print("NEW Scheduler")
   local self = {
     -- Points to the next thread to run
     at_next  = nil,
@@ -197,8 +196,16 @@ function runThread(self, thread)
       print('Error', a, thread.co, debug.traceback(thread.co))
     end
 
-    if thread.restart then
-      thread.co = create(thread.func)
+    local re = thread.restart
+    if re then
+      if type(re) == 'function' then
+        re(thread.at, self)
+        finalizeThread(self, thread)
+      else
+        thread.co = create(thread.func)
+        -- TODO: Should we restart an erroring thread right away ??
+        -- scheduleAt(self, nil, thread)
+      end
     else
       finalizeThread(self, thread)
     end
